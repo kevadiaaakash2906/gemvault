@@ -32,3 +32,4 @@ Folders: `src/app` pages and server actions, `src/lib` permissions, validation a
 - Only the *publishable* Supabase key is used. The secret/service-role key is never needed or stored.
 - Public sign-up must be switched off in Supabase (SETUP.md, step 5). New accounts get no role and no access until an owner assigns one.
 - Role changes happen only through database functions that check the caller is an owner.
+- 
