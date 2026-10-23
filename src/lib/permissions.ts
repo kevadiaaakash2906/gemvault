@@ -14,6 +14,11 @@ export const PERMISSIONS = {
   "audit.view": ["owner"],
   "costs.view": ["owner"],
   "dashboard.view": ["owner", "staff", "seller"],
+  "inventory.view": ["owner", "staff"],
+  "inventory.edit": ["owner", "staff"],
+  "stock.adjust": ["owner"],
+  "products.archive": ["owner"],
+  "locations.manage": ["owner"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

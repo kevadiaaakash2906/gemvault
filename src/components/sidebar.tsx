@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { LayoutDashboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Users, X } from "lucide-react";
+import { Gem, LayoutDashboard, LogOut, MapPin, Menu, PanelLeftClose, PanelLeftOpen, Users, X } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 
-export type NavItem = { href: string; label: string; icon: "overview" | "team" };
-const ICONS = { overview: LayoutDashboard, team: Users };
+export type NavItem = { href: string; label: string; icon: "overview" | "team" | "inventory" | "locations" };
+const ICONS = { overview: LayoutDashboard, team: Users, inventory: Gem, locations: MapPin };
 
 export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: string; roleLabel: string }) {
   const [collapsed, setCollapsed] = useState(false);

@@ -87,3 +87,20 @@ Until then you can set someone's password yourself in Supabase, **Authentication
 | Reset link goes to a wrong or localhost address | Fix `NEXT_PUBLIC_SITE_URL` and the Supabase URL settings (Step 7.5 and 7.6), then Redeploy. |
 | `bootstrap_first_owner` says no user with that email | Create the user first (Step 6.1 and 6.2) and check the spelling. |
 | SQL Editor says "already exists" | The migration already ran. You can ignore it. |
+
+## Upgrading to Phase 2 (inventory)
+
+Do these in this order, so the website never runs ahead of the database.
+
+1. **Database first.** On GitHub (or from the ZIP) open `supabase/migrations/20261022000002_inventory.sql`, copy the whole file,
+   paste it into Supabase **SQL Editor**, **New query**, and click **Run**. You should see "Success. No rows returned".
+   Run it only once. In **Table Editor** you should now also see `products`, `product_stones`, `certificates`, `product_images`,
+   `stock_levels`, `stock_movements`, `stock_locations` and `product_costs`. In **Storage** you should see two private buckets,
+   `product-images` and `certificates`.
+2. **Then the website files.** Upload the new files to GitHub the same way as before (Add file, Upload files): drag the folders
+   `src`, `supabase`, `tests`, `scripts` and `docs`, then separately the loose files `next.config.ts` and `README.md`. Commit.
+   Vercel rebuilds automatically.
+3. **Check.** After Vercel says **Ready**, sign in as owner. The menu now has **Inventory** and **Locations**.
+
+If the SQL Editor says it cannot create a policy on `storage.objects`, send a screenshot of the error. Do not skip it, because the
+private file rules depend on it.

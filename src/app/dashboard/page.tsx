@@ -30,6 +30,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     );
   }
 
+  let productCount: number | null = null;
+  let lowStockCount = 0;
+  if (can(session.role, "inventory.view")) {
+    const supabase = await createClient();
+    const [all, low] = await Promise.all([
+      supabase.from("products").select("id", { count: "exact", head: true }).eq("is_archived", false),
+      supabase.from("product_overview").select("id", { count: "exact", head: true }).eq("is_archived", false).eq("is_low_stock", true),
+    ]);
+    productCount = all.count;
+    lowStockCount = low.count ?? 0;
+  }
+
   let teamCount: number | null = null;
   if (can(session.role, "team.manage")) {
     const supabase = await createClient();
@@ -52,8 +64,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <span className="text-ink-soft">{teamCount === 1 ? "person has" : "people have"} a role in GemVault.</span>
         </p>
       )}
+      {productCount !== null && (
+        <p className="rounded-md border border-gold-soft bg-white p-4">
+          <span className="font-display text-3xl text-forest">{productCount}</span>{" "}
+          <span className="text-ink-soft">active {productCount === 1 ? "product" : "products"}</span>
+          {lowStockCount > 0 && <span className="ml-3 rounded bg-amber-100 px-2 py-0.5 text-sm font-medium text-amber-900">{lowStockCount} low on stock</span>}
+        </p>
+      )}
       <p className="text-ink-soft">
-        Inventory, purchases, sales and seller tools arrive in the next phases. Nothing on this page is sample data.
+        Purchases, sales and seller tools arrive in later phases. Nothing on this page is sample data.
       </p>
     </div>
   );

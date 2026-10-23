@@ -74,3 +74,61 @@ export function Notice({ tone, children }: { tone: "error" | "success"; children
     </p>
   );
 }
+
+export function SelectField({
+  label,
+  error,
+  id,
+  children,
+  ...props
+}: ComponentProps<"select"> & { label: string; error?: string; id: string }) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="block text-sm font-medium">
+        {label}
+      </label>
+      <select
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        {...props}
+        className="block min-h-11 w-full rounded-md border border-gold-soft bg-white px-3 text-base aria-[invalid=true]:border-danger"
+      >
+        {children}
+      </select>
+      {error && (
+        <p id={`${id}-error`} role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function TextAreaField({
+  label,
+  error,
+  id,
+  ...props
+}: ComponentProps<"textarea"> & { label: string; error?: string; id: string }) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="block text-sm font-medium">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        rows={3}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        {...props}
+        className="block w-full rounded-md border border-gold-soft bg-white px-3 py-2 text-base aria-[invalid=true]:border-danger"
+      />
+      {error && (
+        <p id={`${id}-error`} role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}

@@ -6,6 +6,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await requireSession();
 
   const items: NavItem[] = [{ href: "/dashboard", label: "Overview", icon: "overview" }];
+  if (can(session.role, "inventory.view")) items.push({ href: "/dashboard/inventory", label: "Inventory", icon: "inventory" });
+  if (can(session.role, "locations.manage")) items.push({ href: "/dashboard/locations", label: "Locations", icon: "locations" });
   if (can(session.role, "team.manage")) items.push({ href: "/dashboard/team", label: "Team", icon: "team" });
 
   return (
