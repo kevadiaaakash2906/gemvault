@@ -2,17 +2,19 @@
 
 Jewellery inventory, sales and seller management. Built with Next.js, Supabase, Tailwind CSS and Vercel.
 
-## Status: Phases 1 and 2 of 6
+## Status: your ledger is built (Phases 1 and 2 reworked)
+
+GemVault now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses**, plus **Memos** (one buyer's bill and its payments) and **Rates**.
 
 | Done and tested | Not built yet |
 | --- | --- |
-| Sign-in, sign-out, password reset, Owner / Staff / Seller roles | Physical stock counts and discrepancy reports |
-| Products with stones, certificates, photographs, barcodes | CSV import (export is done) |
-| Owner-only purchase costs (separate protected table) | Supplier link and purchase reference (Phase 3) |
-| Stock ledger: opening stock, transfers, owner corrections, locations | Reservations (come with sales and sellers) |
-| Overselling protection, double-click protection, unchangeable history | Purchases, sales, invoices, returns (Phase 3) |
-| Search, sort, filter, pages, low-stock warnings, archive, CSV export | Seller portal and commissions (Phase 4) |
-| 22 app tests and 81 database security and stock checks | Dashboards, reports, notifications (Phase 5); end-to-end tests, backups guide (Phase 6) |
+| Sign-in, password reset, Owner / Staff / Seller roles | Seller portal and commissions |
+| Orders with every column of your sheet, Pg Wt and cost worked out the same way as your sheet | Reports beyond the Overview figures |
+| Trading with vendor, purchase price and profit/loss (owner only) | Import screen (import is a one-off SQL file) |
+| Memos, buyers and payments (part payments, cancelling with a reason) | Seller-visible prices |
+| Expenses and Rates (owner only), CSV export in your sheet's column order | End-to-end browser tests |
+| Staff cannot see costs, vendors, expenses or rates; sellers see nothing | |
+| 21 app tests and 95 database checks, including simultaneous payments | |
 
 ## Start here
 
