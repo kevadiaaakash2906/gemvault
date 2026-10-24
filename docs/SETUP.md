@@ -88,19 +88,19 @@ Until then you can set someone's password yourself in Supabase, **Authentication
 | `bootstrap_first_owner` says no user with that email | Create the user first (Step 6.1 and 6.2) and check the spelling. |
 | SQL Editor says "already exists" | The migration already ran. You can ignore it. |
 
-## Upgrading to Phase 2 (inventory)
+## Upgrading to the ledger version (Orders, Trading, Expenses, Memos)
 
-Do these in this order, so the website never runs ahead of the database.
+Do these in this order.
 
-1. **Database first.** On GitHub (or from the ZIP) open `supabase/migrations/20261022000002_inventory.sql`, copy the whole file,
-   paste it into Supabase **SQL Editor**, **New query**, and click **Run**. You should see "Success. No rows returned".
-   Run it only once. In **Table Editor** you should now also see `products`, `product_stones`, `certificates`, `product_images`,
-   `stock_levels`, `stock_movements`, `stock_locations` and `product_costs`. In **Storage** you should see two private buckets,
-   `product-images` and `certificates`.
-2. **Then the website files.** Upload the new files to GitHub the same way as before (Add file, Upload files): drag the folders
-   `src`, `supabase`, `tests`, `scripts` and `docs`, then separately the loose files `next.config.ts` and `README.md`. Commit.
-   Vercel rebuilds automatically.
-3. **Check.** After Vercel says **Ready**, sign in as owner. The menu now has **Inventory** and **Locations**.
-
-If the SQL Editor says it cannot create a policy on `storage.objects`, send a screenshot of the error. Do not skip it, because the
-private file rules depend on it.
+1. **Database first.** In Supabase open **SQL Editor**, **New query**, paste the whole file
+   `supabase/migrations/20261022000003_ledger.sql`, and click **Run**. Expect "Success. No rows returned".
+   This removes the earlier inventory tables (they only held test entries) and creates your ledger tables.
+2. **Remove the old website files on GitHub.** The new version replaces them, and old leftovers would stop the build.
+   Open your repository, click the folder `src`, click the three dots at the top right, **Delete directory**, **Commit changes**.
+   Do the same for the folder `tests`. Then open `supabase/tests`, click `inventory.test.sql`, click the bin icon, **Commit changes**.
+3. **Upload the new files.** **Add file**, **Upload files**. Drag the folders `src`, `tests`, `supabase`, `scripts` and `docs` from the
+   extracted ZIP, then the file `README.md`, then **Commit changes**. Vercel rebuilds. Wait for **Ready**.
+4. **Sign in** as owner. The menu shows Overview, Orders, Trading, Memos, Expenses, Rates and Team.
+5. **Set your rates.** Open **Rates** and enter today's gold rate and dollar rate.
+6. **Import your workbook (once).** Read `vinere-import-report.md` first. Then paste `vinere-import.sql` into Supabase SQL Editor and Run.
+   Never put that file on GitHub, because it contains your business data.

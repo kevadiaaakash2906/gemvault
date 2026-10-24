@@ -76,8 +76,8 @@ begin
     format($q$select public.set_user_role(%L, 'owner')$q$, sellera), 'only an owner');
   perform t.denied('staff cannot deactivate users',
     format($q$select public.set_user_active(%L, false)$q$, sellera), 'only an owner');
-  perform t.ok('staff reads business settings', (select count(*) from public.business_settings) = 1);
-  update public.business_settings set business_name = 'Hacked by staff';
+  perform t.ok('staff cannot read the rate settings', (select count(*) from public.business_settings) = 0);
+  update public.business_settings set gold_rate = 1;
   get diagnostics n = row_count;
   perform t.ok('staff cannot edit business settings', n = 0);
   perform t.ok('staff cannot read the audit log', (select count(*) from public.audit_logs) = 0);
@@ -88,7 +88,7 @@ begin
   perform t.ok('seller sees only their own profile',
     (select count(*) from public.profiles where id <> sellera) = 0);
   perform t.ok('seller cannot see other roles', (select count(*) from public.user_roles) = 1);
-  perform t.ok('seller cannot read business settings', (select count(*) from public.business_settings) = 0);
+  perform t.ok('seller cannot read the rate settings', (select count(*) from public.business_settings) = 0);
   perform t.ok('seller cannot read the audit log', (select count(*) from public.audit_logs) = 0);
   perform t.denied('seller cannot give themselves owner (direct update)',
     format($q$update public.user_roles set role = 'owner' where user_id = %L$q$, sellera), 'permission denied');
@@ -126,8 +126,8 @@ begin
 
   -- owner powers + audit trail
   perform t.as_user(owner_id);
-  update public.business_settings set business_name = 'Real Jewellers';
-  perform t.ok('owner can edit business settings', (select business_name from public.business_settings) = 'Real Jewellers');
+  update public.business_settings set gold_rate = 17000;
+  perform t.ok('owner can edit the rate settings', (select gold_rate from public.business_settings) = 17000);
   perform public.set_user_active(sellerb, false);
   perform t.ok('audit log recorded role changes and settings edit',
     (select count(*) from public.audit_logs where action in ('role.changed','settings.updated','user.deactivated')) >= 5);
@@ -145,8 +145,8 @@ begin
 
   -- settings validation
   perform t.as_user(owner_id);
-  perform t.denied('bad GSTIN rejected',
-    $q$update public.business_settings set gstin = 'NOTAGSTIN'$q$, 'check constraint');
+  perform t.denied('negative gold rate rejected',
+    $q$update public.business_settings set gold_rate = -5$q$, 'check constraint');
   perform t.admin();
   raise notice 'ALL SECURITY TESTS PASSED';
 end $$;
