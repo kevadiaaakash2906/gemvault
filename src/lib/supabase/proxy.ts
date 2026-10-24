@@ -18,10 +18,11 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // getUser() asks Supabase to verify the login every time (safer than trusting the cookie alone).
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() checks the login's signature on this server without a trip to Supabase
+  // (when the project uses Supabase's newer signing keys), which keeps every click fast.
+  // The database still checks who you are on every query, so access is never trusted from this check alone.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const path = request.nextUrl.pathname;
   const redirectTo = (to: string) => {

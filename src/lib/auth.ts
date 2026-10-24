@@ -14,20 +14,20 @@ export type Session = {
 
 export const getSession = cache(async (): Promise<Session | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
+  const userId = claims.sub;
 
   const [{ data: profile }, { data: roleRow }] = await Promise.all([
-    supabase.from("profiles").select("full_name,email,is_active").eq("id", user.id).maybeSingle(),
-    supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
+    supabase.from("profiles").select("full_name,email,is_active").eq("id", userId).maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
   ]);
 
   const isActive = profile?.is_active ?? false;
   return {
-    userId: user.id,
-    email: profile?.email ?? user.email ?? "",
+    userId,
+    email: profile?.email ?? (typeof claims.email === "string" ? claims.email : ""),
     fullName: profile?.full_name ?? null,
     role: isActive ? ((roleRow?.role as Role | undefined) ?? null) : null,
     isActive,

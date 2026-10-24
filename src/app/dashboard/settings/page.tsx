@@ -14,6 +14,7 @@ export default async function SettingsPage() {
         <h1 className="font-display text-3xl text-forest">Rates</h1>
         <p className="mt-1 text-ink-soft">New orders use these to work out Gold Amount, Labor Amount and the dollar cost. Old orders keep the amounts they were saved with.</p>
       </div>
+      <p className="text-sm"><a href="/dashboard/speed" className="text-gold-deep underline underline-offset-4">Speed check</a></p>
       {rates && <RatesForm initial={{ gold_rate: String(rates.goldRate), usd_rate: String(rates.usdRate), default_multiplier: String(rates.defaultMultiplier), default_labor: String(rates.defaultLabor) }} />}
     </div>
   );

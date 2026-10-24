@@ -27,9 +27,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   if (sp.type) query = query.eq("jewelry_type", sp.type);
   if (q) query = query.or(`style_no.ilike.%${q}%,customer.ilike.%${q}%,sold_to.ilike.%${q}%,memo_no.ilike.%${q}%`);
   const from = (page - 1) * PAGE_SIZE;
-  const { data: rows, count, error } = await query.order(sort, { ascending: dir === "asc", nullsFirst: false }).order("id").range(from, from + PAGE_SIZE - 1);
-
-  const { data: types } = await supabase.from("orders").select("jewelry_type").not("jewelry_type", "is", null).limit(2000);
+  const [{ data: rows, count, error }, { data: types }] = await Promise.all([
+    query.order(sort, { ascending: dir === "asc", nullsFirst: false }).order("id").range(from, from + PAGE_SIZE - 1),
+    supabase.from("orders").select("jewelry_type").not("jewelry_type", "is", null).limit(2000),
+  ]);
   const typeList = [...new Set((types ?? []).map((t) => t.jewelry_type as string))].sort();
 
   const costs = new Map<string, Record<string, number>>();
