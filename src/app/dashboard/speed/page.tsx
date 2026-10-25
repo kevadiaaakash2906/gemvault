@@ -25,7 +25,7 @@ export default async function SpeedPage() {
         <div className="sm:col-span-2"><dt className="text-sm text-ink-soft">Three database questions in a row</dt><dd className="text-xl font-medium">{runs.join(" ms, ")} ms</dd></div>
       </dl>
       <p className="rounded-md bg-parchment p-4">{verdict}</p>
-      <p className="text-sm text-ink-soft">Each page asks the database several questions one after another, so every extra 100 ms here adds up. Send me this page&apos;s numbers and the region shown in Supabase under Project Settings, General.</p>
+      <p className="text-sm text-ink-soft">Each page asks the database several questions one after another, so every extra 100 ms here adds up. Send me a screenshot of this page and the region shown in Supabase under Project Settings, General.</p>
     </div>
   );
 }
