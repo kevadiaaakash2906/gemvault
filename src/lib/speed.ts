@@ -6,10 +6,17 @@ async function time(fn: () => PromiseLike<unknown>): Promise<number> {
   return Math.round(performance.now() - t);
 }
 
-/** Times three database questions in a row and one login check. */
+/**
+ * Times three DIFFERENT database questions (identical ones can be reused by the website and look instant)
+ * and both ways of checking the login.
+ */
 export async function measureSpeed(supabase: SupabaseClient) {
   const runs: number[] = [];
-  for (let i = 0; i < 3; i++) runs.push(await time(() => supabase.from("memos").select("id", { head: true, count: "exact" })));
-  const login = await time(() => supabase.auth.getUser());
-  return { runs, login };
+  for (const table of ["memos", "buyers", "payments"]) {
+    runs.push(await time(() => supabase.from(table).select("id", { head: true, count: "exact" })));
+  }
+  const loginServer = await time(() => supabase.auth.getUser());
+  await supabase.auth.getClaims();                       // first call may download the signing keys
+  const loginLocal = await time(() => supabase.auth.getClaims());
+  return { runs, loginServer, loginLocal };
 }
