@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
+import { Tile, TileEmpty } from "@/components/tiles";
 
 export const metadata: Metadata = { title: "Memos" };
 const STATUSES = ["Unpaid", "Partial", "Paid"];
@@ -31,7 +32,7 @@ export default async function MemosPage({ searchParams }: { searchParams: Promis
           <select id="status" name="status" defaultValue={status ?? ""} className="mt-1 min-h-11 w-full rounded-md border border-gold-soft bg-white px-3"><option value="">All</option>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></div>
         <button className="min-h-11 self-end rounded-md bg-forest px-5 text-sm font-semibold text-ivory hover:bg-forest-deep">Apply</button>
       </form>
-      <div className="overflow-x-auto rounded-md border border-gold-soft bg-white">
+      <div className="hidden overflow-x-auto rounded-md border border-gold-soft bg-white md:block">
         <table className="w-full min-w-[40rem] text-sm">
           <caption className="sr-only">Memos</caption>
           <thead className="bg-parchment"><tr className="text-left"><th className="px-3 py-2 font-medium">Memo</th><th className="px-3 py-2 font-medium">Sold To</th><th className="px-3 py-2 text-right font-medium">Pieces</th><th className="px-3 py-2 text-right font-medium">Bill</th><th className="px-3 py-2 text-right font-medium">Paid</th><th className="px-3 py-2 text-right font-medium">Balance</th><th className="px-3 py-2 font-medium">Status</th></tr></thead>
@@ -48,6 +49,16 @@ export default async function MemosPage({ searchParams }: { searchParams: Promis
           </tbody>
         </table>
       </div>
+
+      <ul className="space-y-3 md:hidden" aria-label="Memos">
+        {(rows ?? []).map((m) => (
+          <Tile key={m.id} title={`Memo ${m.memo_no}`} subtitle={m.buyer}
+            right={<><p className="font-medium">{usd.format(num(m.balance))}</p><p className="text-ink-soft">{m.payment_status}</p></>}
+            facts={[["Pieces", m.pieces], ["Status", m.payment_status], ["Bill", usd.format(num(m.total_bill))], ["Paid", usd.format(num(m.total_paid))], ["Balance", usd.format(num(m.balance))], ["Created", fmtDate(String(m.created_at).slice(0, 10))]]}
+            href={`/dashboard/memos/${m.id}`} hrefLabel="Open memo and payments" />
+        ))}
+        {(rows ?? []).length === 0 && <TileEmpty>No memos yet.</TileEmpty>}
+      </ul>
       {pages > 1 && (
         <nav aria-label="Pages" className="flex items-center justify-between text-sm"><span className="text-ink-soft">Page {page} of {pages}</span>
           <div className="flex gap-2">
