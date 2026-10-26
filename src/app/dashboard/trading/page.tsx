@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
+import { Tile, TileEmpty, type Fact } from "@/components/tiles";
 
 export const metadata: Metadata = { title: "Trading" };
 const STATUSES = ["Not Sold", "Unpaid", "Partial", "Paid"];
@@ -55,7 +56,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
         <button className="min-h-11 self-end rounded-md bg-forest px-5 text-sm font-semibold text-ivory hover:bg-forest-deep">Apply</button>
       </form>
       {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load trades. Please refresh the page.</p>}
-      <div className="overflow-x-auto rounded-md border border-gold-soft bg-white">
+      <div className="hidden overflow-x-auto rounded-md border border-gold-soft bg-white lg:block">
         <table className="w-full text-xs">
           <caption className="sr-only">Trading</caption>
           <thead className="bg-parchment"><tr>
@@ -87,6 +88,27 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
           </tbody>
         </table>
       </div>
+
+      <ul className="space-y-3 lg:hidden" aria-label="Trading items">
+        {(rows ?? []).map((r) => {
+          const c = costs.get(r.id);
+          const profit = c && r.sale_price !== null ? num(r.sale_price) - num(c.purchase_price) : null;
+          const facts: Fact[] = [["Date", fmtDate(r.trade_date)]];
+          if (owner) facts.push(["Vendor", c?.vendor ?? "—"], ["Purchase Price", c ? usd.format(num(c.purchase_price)) : "—"], ["Profit/Loss", profit !== null ? usd.format(profit) : "—"]);
+          facts.push(
+            ["Date Sold", fmtDate(r.date_sold)], ["Sold To", r.sold_to ?? "—"],
+            ["Memo", r.memo_id ? <Link key="m" href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"],
+            ["Memo Paid", r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"], ["Memo Balance", r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"],
+            ["Notes", r.notes ?? "—"],
+          );
+          return (
+            <Tile key={r.id} title={`#${r.sr_no} · ${r.item}`} subtitle={fmtDate(r.trade_date)}
+              right={<><p className="font-medium">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "Not sold"}</p>{badge(r.payment_status)}</>}
+              facts={facts} href={`/dashboard/trading/${r.id}`} hrefLabel="Open / edit" />
+          );
+        })}
+        {(rows ?? []).length === 0 && !error && <TileEmpty>No items yet.</TileEmpty>}
+      </ul>
       {pages > 1 && (
         <nav aria-label="Pages" className="flex items-center justify-between text-sm"><span className="text-ink-soft">Page {page} of {pages}</span>
           <div className="flex gap-2">
