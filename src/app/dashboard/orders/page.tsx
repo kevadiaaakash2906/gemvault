@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, inr, num, parsePage, pickSort, usd } from "@/lib/ledger";
+import { Tile, TileEmpty, type Fact } from "@/components/tiles";
 
 export const metadata: Metadata = { title: "Orders" };
 const SORTS = ["sr_no", "order_date", "style_no", "sale_price", "date_sold"] as const;
@@ -27,10 +28,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   if (sp.type) query = query.eq("jewelry_type", sp.type);
   if (q) query = query.or(`style_no.ilike.%${q}%,customer.ilike.%${q}%,sold_to.ilike.%${q}%,memo_no.ilike.%${q}%`);
   const from = (page - 1) * PAGE_SIZE;
-  const [{ data: rows, count, error }, { data: types }] = await Promise.all([
-    query.order(sort, { ascending: dir === "asc", nullsFirst: false }).order("id").range(from, from + PAGE_SIZE - 1),
-    supabase.from("orders").select("jewelry_type").not("jewelry_type", "is", null).limit(2000),
-  ]);
+  const { data: rows, count, error } = await query.order(sort, { ascending: dir === "asc", nullsFirst: false }).order("id").range(from, from + PAGE_SIZE - 1);
+
+  const { data: types } = await supabase.from("orders").select("jewelry_type").not("jewelry_type", "is", null).limit(2000);
   const typeList = [...new Set((types ?? []).map((t) => t.jewelry_type as string))].sort();
 
   const costs = new Map<string, Record<string, number>>();
@@ -88,7 +88,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 
       {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load orders. Please refresh the page.</p>}
 
-      <div className="overflow-x-auto rounded-md border border-gold-soft bg-white">
+      <div className="hidden overflow-x-auto rounded-md border border-gold-soft bg-white lg:block">
         <table className="w-full text-xs">
           <caption className="sr-only">Orders</caption>
           <thead className="bg-parchment">
@@ -141,6 +141,33 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           </tbody>
         </table>
       </div>
+
+      <ul className="space-y-3 lg:hidden" aria-label="Orders">
+        {(rows ?? []).map((r) => {
+          const c = costs.get(r.id);
+          const facts: Fact[] = [
+            ["Customer", r.customer ?? "—"], ["Diamond Shape", r.diamond_shape ?? "—"], ["Gross Wt", r.gross_wt ?? "—"], ["Net Wt", r.net_wt ?? "—"],
+            ["Multiplier", r.multiplier ?? "—"], ["Pg Wt", r.pg_wt ?? "—"], ["Dia Qty", r.dia_qty ?? "—"], ["IN CT", r.in_ct ?? "—"], ["Colour Stone", r.colour_stone ?? "—"],
+          ];
+          if (owner) facts.push(
+            ["Gold Amount", c ? inr.format(num(c.gold_amount)) : "—"], ["Diam Amount", c ? inr.format(num(c.diam_amount)) : "—"],
+            ["L Charges", c ? num(c.l_charges) : "—"], ["Labor Amount", c ? inr.format(num(c.labor_amount)) : "—"],
+            ["Sub Total", c ? inr.format(num(c.sub_total)) : "—"], ["$", c ? usd.format(num(c.usd_cost)) : "—"],
+          );
+          facts.push(
+            ["Sold To", r.sold_to ?? "—"], ["Date Sold", fmtDate(r.date_sold)],
+            ["Memo", r.memo_id ? <Link key="m" href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"],
+            ["Memo Paid", r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"], ["Memo Balance", r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"],
+          );
+          return (
+            <Tile key={r.id} title={`#${r.sr_no} · ${r.style_no}`}
+              subtitle={[r.jewelry_type, fmtDate(r.order_date)].filter((x) => x && x !== "—").join(" · ")}
+              right={<><p className="font-medium">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "Not sold"}</p>{badge(r.payment_status)}</>}
+              facts={facts} href={`/dashboard/orders/${r.id}`} hrefLabel="Open / edit" />
+          );
+        })}
+        {(rows ?? []).length === 0 && !error && <TileEmpty>No orders match.</TileEmpty>}
+      </ul>
 
       {pages > 1 && (
         <nav aria-label="Pages" className="flex items-center justify-between text-sm">
