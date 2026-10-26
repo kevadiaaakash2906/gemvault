@@ -4,6 +4,7 @@ import { Download, Plus } from "lucide-react";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
+import { Tile, TileEmpty } from "@/components/tiles";
 
 export const metadata: Metadata = { title: "Expenses" };
 
@@ -41,7 +42,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           <select id="category" name="category" defaultValue={sp.category ?? ""} className="mt-1 min-h-11 w-full rounded-md border border-gold-soft bg-white px-3"><option value="">All</option>{cats.map((c) => <option key={c}>{c}</option>)}</select></div>
         <button className="min-h-11 self-end rounded-md bg-forest px-5 text-sm font-semibold text-ivory hover:bg-forest-deep">Apply</button>
       </form>
-      <div className="overflow-x-auto rounded-md border border-gold-soft bg-white">
+      <div className="hidden overflow-x-auto rounded-md border border-gold-soft bg-white md:block">
         <table className="w-full min-w-[44rem] text-sm">
           <caption className="sr-only">Expenses</caption>
           <thead className="bg-parchment"><tr className="text-left"><th className="px-3 py-2 font-medium">Sr. No.</th><th className="px-3 py-2 font-medium">Date</th><th className="px-3 py-2 font-medium">Category</th><th className="px-3 py-2 font-medium">Description</th><th className="px-3 py-2 text-right font-medium">Amount</th><th className="px-3 py-2 font-medium">Seller</th><th className="px-3 py-2 font-medium">Notes</th></tr></thead>
@@ -57,6 +58,16 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           </tbody>
         </table>
       </div>
+
+      <ul className="space-y-3 md:hidden" aria-label="Expenses">
+        {(rows ?? []).map((e) => (
+          <Tile key={e.id} title={e.description} subtitle={`${e.category} · ${fmtDate(e.expense_date)}`}
+            right={<p className="font-medium">{usd.format(num(e.amount))}</p>}
+            facts={[["Sr. No.", e.sr_no], ["Seller", e.seller ?? "—"], ["Notes", e.notes ?? "—"]]}
+            href={`/dashboard/expenses/${e.id}`} hrefLabel="Open / edit" />
+        ))}
+        {(rows ?? []).length === 0 && <TileEmpty>No expenses yet.</TileEmpty>}
+      </ul>
       {pages > 1 && (
         <nav aria-label="Pages" className="flex items-center justify-between text-sm"><span className="text-ink-soft">Page {page} of {pages}</span>
           <div className="flex gap-2">
