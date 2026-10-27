@@ -34,10 +34,14 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const typeList = [...new Set((types ?? []).map((t) => t.jewelry_type as string))].sort();
 
   const costs = new Map<string, Record<string, number>>();
-  if (owner && rows?.length) {
-    const { data } = await supabase.from("order_costs").select("*").in("order_id", rows.map((r) => r.id));
-    (data ?? []).forEach((c) => costs.set(c.order_id, c));
-  }
+  const thumbUrls = new Map<string, string>();
+  const thumbPaths = [...new Set((rows ?? []).map((r) => r.style_thumb_path).filter((p): p is string => !!p))];
+  const [costRes, signed] = await Promise.all([
+    owner && rows?.length ? supabase.from("order_costs").select("*").in("order_id", rows.map((r) => r.id)) : Promise.resolve({ data: null }),
+    thumbPaths.length ? supabase.storage.from("style-photos").createSignedUrls(thumbPaths, 3600) : Promise.resolve({ data: null }),
+  ]);
+  (costRes.data ?? []).forEach((c: Record<string, number> & { order_id: string }) => costs.set(c.order_id, c));
+  (signed.data ?? []).forEach((x) => { if (x.path && x.signedUrl) thumbUrls.set(x.path, x.signedUrl); });
 
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -93,7 +97,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           <caption className="sr-only">Orders</caption>
           <thead className="bg-parchment">
             <tr>
-              {th("sr_no", "Sr. No.")}{plain("Customer")}{th("style_no", "Style No.")}{plain("Jewelry Type")}{plain("Diamond Shape")}{th("order_date", "Date")}
+              {plain("Photo")}{th("sr_no", "Sr. No.")}{plain("Customer")}{th("style_no", "Style No.")}{plain("Jewelry Type")}{plain("Diamond Shape")}{th("order_date", "Date")}
               {plain("Gross Wt", true)}{plain("Dia Qty", true)}{plain("IN CT", true)}{plain("Colour Stone", true)}{plain("Net Wt", true)}{plain("Multiplier", true)}{plain("Pg Wt", true)}
               {owner && <>{plain("Gold Amount", true)}{plain("Diam Amount", true)}{plain("L Charges", true)}{plain("Labor Amount", true)}{plain("Sub Total", true)}{plain("$", true)}</>}
               {plain("Sold To")}{th("sale_price", "Sale Price", true)}{th("date_sold", "Date Sold")}{plain("Memo")}{plain("Memo Paid", true)}{plain("Memo Balance", true)}{plain("Payment Status")}
@@ -104,6 +108,12 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               const c = costs.get(r.id);
               return (
                 <tr key={r.id} className="hover:bg-ivory">
+                  <td className="px-2 py-2">
+                    {r.style_thumb_path && thumbUrls.get(r.style_thumb_path)
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={thumbUrls.get(r.style_thumb_path)} alt="" className="size-10 rounded object-cover" />
+                      : <div className="size-10 rounded bg-parchment" aria-hidden />}
+                  </td>
                   <td className="px-2 py-2"><Link href={`/dashboard/orders/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link></td>
                   <td className="px-2 py-2">{r.customer ?? "—"}</td>
                   <td className="px-2 py-2 font-mono">{r.style_no}</td>
@@ -136,7 +146,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               );
             })}
             {(rows ?? []).length === 0 && !error && (
-              <tr><td colSpan={owner ? 26 : 20} className="px-3 py-10 text-center text-ink-soft">No orders match. {total === 0 && !q && !status && !sp.type ? "Add your first order to begin." : "Try clearing the filters."}</td></tr>
+              <tr><td colSpan={owner ? 27 : 21} className="px-3 py-10 text-center text-ink-soft">No orders match. {total === 0 && !q && !status && !sp.type ? "Add your first order to begin." : "Try clearing the filters."}</td></tr>
             )}
           </tbody>
         </table>
@@ -160,7 +170,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             ["Memo Paid", r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"], ["Memo Balance", r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"],
           );
           return (
-            <Tile key={r.id} title={`#${r.sr_no} · ${r.style_no}`}
+            <Tile key={r.id} image={r.style_thumb_path ? thumbUrls.get(r.style_thumb_path) ?? null : null} title={`#${r.sr_no} · ${r.style_no}`}
               subtitle={[r.jewelry_type, fmtDate(r.order_date)].filter((x) => x && x !== "—").join(" · ")}
               right={<><p className="font-medium">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "Not sold"}</p>{badge(r.payment_status)}</>}
               facts={facts} href={`/dashboard/orders/${r.id}`} hrefLabel="Open / edit" />
