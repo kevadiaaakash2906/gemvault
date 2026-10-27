@@ -125,3 +125,11 @@ export const ratesSchema = z.object({
   default_labor: optDecimal(2, "Labour charge", 8).refine((v) => v !== "", "Enter the labour charge."),
 });
 export type RatesValues = z.infer<typeof ratesSchema>;
+
+export const styleSchema = z.object({
+  id: z.string().optional(),
+  style_no: z.string().trim().min(1, "Enter the style number.").max(120, "Style number is too long."),
+  jewelry_type: text(40, "Jewelry type"),
+  diamond_shape: text(60, "Diamond shape"),
+});
+export type StyleValues = z.infer<typeof styleSchema>;
