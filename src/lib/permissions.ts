@@ -26,6 +26,8 @@ export const PERMISSIONS = {
   "payments.void": ["owner"],
   "records.delete": ["owner"],
   "expenses.manage": ["owner"],
+  "receivables.view": ["owner", "staff"],
+  "reports.profit": ["owner"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
