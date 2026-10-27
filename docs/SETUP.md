@@ -104,3 +104,12 @@ Do these in this order.
 5. **Set your rates.** Open **Rates** and enter today's gold rate and dollar rate.
 6. **Import your workbook (once).** Read `vinere-import-report.md` first. Then paste `vinere-import.sql` into Supabase SQL Editor and Run.
    Never put that file on GitHub, because it contains your business data.
+
+## Adding the reports (Who owes me, Profit)
+
+1. **Database first.** In Supabase open **SQL Editor**, **New query**, paste the whole file
+   `supabase/migrations/20261027000004_reports.sql`, and click **Run**. Expect "Success. No rows returned". It only adds read-only views and changes none of your data.
+2. **Upload the changed files** to GitHub (same way as before) and wait for Vercel to show **Ready**.
+3. **Who owes me** appears in the menu for the owner and staff. **Profit** appears for the owner only.
+4. If Profit says some sold pieces have "no cost on file", open **Show them**, then open each piece and enter its cost. Those pieces are left out of profit until then.
+
