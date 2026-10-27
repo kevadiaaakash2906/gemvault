@@ -5,12 +5,16 @@ export type Fact = [label: string, value: React.ReactNode];
 
 /** One row shown as a collapsed tile on phones. Tap to open. Works with the keyboard and without JavaScript. */
 export function Tile({
-  title, subtitle, right, facts, href, hrefLabel,
-}: { title: string; subtitle?: string; right?: React.ReactNode; facts: Fact[]; href?: string; hrefLabel?: string }) {
+  title, subtitle, right, facts, href, hrefLabel, image,
+}: { image?: string | null; title: string; subtitle?: string; right?: React.ReactNode; facts: Fact[]; href?: string; hrefLabel?: string }) {
   return (
     <li>
       <details className="group rounded-md border border-gold-soft bg-white">
         <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
+          {image !== undefined && (image
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={image} alt="" className="size-12 shrink-0 rounded object-cover" />
+            : <div className="size-12 shrink-0 rounded bg-parchment" aria-hidden />)}
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-forest">{title}</p>
             {subtitle && <p className="truncate text-sm text-ink-soft">{subtitle}</p>}
