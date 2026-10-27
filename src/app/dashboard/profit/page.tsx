@@ -26,8 +26,23 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
   const page = parsePage(sp.page);
   const supabase = await createClient();
 
+  // Everything this page needs is asked for at the same time, so you wait for ONE database round trip, not two.
+  const from = (page - 1) * PAGE_SIZE;
+  let pieceQuery = null;
+  if (view === "piece") {
+    let query = supabase.from("piece_profit").select("*", { count: "exact" });
+    if (kind) query = query.eq("kind", kind);
+    if (missing) query = query.eq("cost_known", false);
+    if (q) query = query.or(`label.ilike.%${q}%,buyer.ilike.%${q}%,memo_no.ilike.%${q}%`);
+    pieceQuery = query.order("date_sold", { ascending: false, nullsFirst: false }).order("sr_no", { ascending: false }).range(from, from + PAGE_SIZE - 1);
+  }
+  const buyerQuery = view === "buyer" ? supabase.from("buyer_profit").select("*").order("profit", { ascending: false }).order("buyer") : null;
   // Month totals feed the summary cards on every tab.
-  const { data: monthRows, error: monthError } = await supabase.from("monthly_profit").select("*").order("month", { ascending: false, nullsFirst: false });
+  const [{ data: monthRows, error: monthError }, pieceRes, buyerRes] = await Promise.all([
+    supabase.from("monthly_profit").select("*").order("month", { ascending: false, nullsFirst: false }),
+    pieceQuery,
+    buyerQuery,
+  ]);
   const months = monthRows ?? [];
   const sum = (k: string) => months.reduce((n, m) => n + num((m as Record<string, unknown>)[k]), 0);
   const orderProfit = sum("order_profit");
@@ -44,25 +59,10 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
     { label: "Margin on costed sales", value: fmtPct(marginPct(orderProfit + tradeProfit, sum("costed_sales"))), tone: "" },
   ];
 
-  let pieces: Record<string, unknown>[] = [];
-  let buyers: Record<string, unknown>[] = [];
-  let pieceCount = 0;
-  let viewError = false;
-  if (view === "piece") {
-    let query = supabase.from("piece_profit").select("*", { count: "exact" });
-    if (kind) query = query.eq("kind", kind);
-    if (missing) query = query.eq("cost_known", false);
-    if (q) query = query.or(`label.ilike.%${q}%,buyer.ilike.%${q}%,memo_no.ilike.%${q}%`);
-    const from = (page - 1) * PAGE_SIZE;
-    const res = await query.order("date_sold", { ascending: false, nullsFirst: false }).order("sr_no", { ascending: false }).range(from, from + PAGE_SIZE - 1);
-    pieces = res.data ?? [];
-    pieceCount = res.count ?? 0;
-    viewError = !!res.error;
-  } else if (view === "buyer") {
-    const res = await supabase.from("buyer_profit").select("*").order("profit", { ascending: false }).order("buyer");
-    buyers = res.data ?? [];
-    viewError = !!res.error;
-  }
+  const pieces: Record<string, unknown>[] = pieceRes?.data ?? [];
+  const buyers: Record<string, unknown>[] = buyerRes?.data ?? [];
+  const pieceCount = pieceRes?.count ?? 0;
+  const viewError = !!(pieceRes?.error || buyerRes?.error);
   const pages = Math.max(1, Math.ceil(pieceCount / PAGE_SIZE));
   const base = { view, q: q || undefined, kind, missing: missing ? "1" : undefined };
   const costMissing = <span className="font-medium text-amber-700">Cost missing</span>;
