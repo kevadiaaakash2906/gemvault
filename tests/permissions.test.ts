@@ -10,6 +10,14 @@ describe("role permissions", () => {
       expect(can("seller", p)).toBe(false);
     }
   });
+  it("lets staff see who owes money but keeps the profit report owner-only", () => {
+    expect(can("owner", "receivables.view")).toBe(true);
+    expect(can("staff", "receivables.view")).toBe(true);
+    expect(can("seller", "receivables.view")).toBe(false);
+    expect(can("owner", "reports.profit")).toBe(true);
+    expect(can("staff", "reports.profit")).toBe(false);
+    expect(can("seller", "reports.profit")).toBe(false);
+  });
   it("denies everything when there is no role", () => {
     expect(can(null, "dashboard.view")).toBe(false);
     expect(can(undefined, "team.manage")).toBe(false);
