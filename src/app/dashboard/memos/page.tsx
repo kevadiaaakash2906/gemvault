@@ -8,25 +8,29 @@ import { Tile, TileEmpty } from "@/components/tiles";
 export const metadata: Metadata = { title: "Memos" };
 const STATUSES = ["Unpaid", "Partial", "Paid"];
 
-export default async function MemosPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; page?: string }> }) {
+export default async function MemosPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; buyer?: string; page?: string }> }) {
   await requirePermission("memos.view");
   const sp = await searchParams;
   const q = cleanSearch(sp.q);
   const page = parsePage(sp.page);
   const status = STATUSES.includes(sp.status ?? "") ? sp.status : undefined;
+  const buyer = (sp.buyer ?? "").trim().slice(0, 120) || undefined;
   const supabase = await createClient();
   let query = supabase.from("memo_summary").select("*", { count: "exact" });
   if (status) query = query.eq("payment_status", status);
+  if (buyer) query = query.eq("buyer", buyer);
   if (q) query = query.or(`memo_no.ilike.%${q}%,buyer.ilike.%${q}%`);
   const from = (page - 1) * PAGE_SIZE;
   const { data: rows, count } = await query.order("created_at", { ascending: false }).range(from, from + PAGE_SIZE - 1);
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const base = { q: q || undefined, status };
+  const base = { q: q || undefined, status, buyer };
   return (
     <div className="space-y-5">
       <div><h1 className="font-display text-3xl text-forest">Memos</h1><p className="text-ink-soft">Each memo is one buyer&apos;s bill. Open one to record or view payments.</p></div>
+      {buyer && <p className="text-sm">Showing memos for <strong>{buyer}</strong> · <Link href={`/dashboard/memos${buildQuery({ q: q || undefined, status })}`} className="text-forest underline underline-offset-4">Show all buyers</Link></p>}
       <form method="get" className="grid gap-3 rounded-md border border-gold-soft bg-white p-4 sm:grid-cols-[2fr_1fr_auto]">
+        {buyer && <input type="hidden" name="buyer" value={buyer} />}
         <div><label htmlFor="q" className="block text-sm font-medium">Search</label><input id="q" name="q" defaultValue={q} placeholder="Memo number or buyer" className="mt-1 min-h-11 w-full rounded-md border border-gold-soft px-3" /></div>
         <div><label htmlFor="status" className="block text-sm font-medium">Payment status</label>
           <select id="status" name="status" defaultValue={status ?? ""} className="mt-1 min-h-11 w-full rounded-md border border-gold-soft bg-white px-3"><option value="">All</option>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></div>
