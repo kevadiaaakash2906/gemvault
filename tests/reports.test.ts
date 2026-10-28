@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageTone, daysWaiting, fmtPct, marginPct, monthLabel, signedUsd, waitingLabel } from "@/lib/reports";
+import { ageTone, daysWaiting, fmtPct, marginPct, monthLabel, refundDue, signedUsd, waitingLabel } from "@/lib/reports";
 
 const today = new Date("2026-10-27T09:00:00Z");
 
@@ -59,5 +59,14 @@ describe("signedUsd", () => {
     expect(signedUsd(32753.47)).toBe("+$32,753.47");
     expect(signedUsd(-300)).toBe("-$300.00");
     expect(signedUsd(0)).toBe("$0.00");
+  });
+});
+
+describe("refundDue", () => {
+  it("refunds only what the buyer has paid above the reduced bill", () => {
+    expect(refundDue(1200, 1500, 500)).toBe(200);      // part-paid memo
+    expect(refundDue(600, 600, 600)).toBe(600);        // fully paid, only piece returned
+    expect(refundDue(0, 800, 800)).toBe(0);            // nothing paid yet
+    expect(refundDue(300, 1500, 500)).toBe(0);         // paid less than the new bill
   });
 });

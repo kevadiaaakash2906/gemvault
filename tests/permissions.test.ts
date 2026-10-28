@@ -18,6 +18,13 @@ describe("role permissions", () => {
     expect(can("staff", "reports.profit")).toBe(false);
     expect(can("seller", "reports.profit")).toBe(false);
   });
+  it("lets owner and staff record returns, never sellers", () => {
+    for (const perm of ["returns.record", "returns.view"] as const) {
+      expect(can("owner", perm)).toBe(true);
+      expect(can("staff", perm)).toBe(true);
+      expect(can("seller", perm)).toBe(false);
+    }
+  });
   it("denies everything when there is no role", () => {
     expect(can(null, "dashboard.view")).toBe(false);
     expect(can(undefined, "team.manage")).toBe(false);
