@@ -1,4 +1,4 @@
-# GemVault setup guide (Phase 1)
+# Vinere setup guide (Phase 1)
 
 You will use three websites: **GitHub** (stores the files), **Supabase** (database and logins), **Vercel** (puts the site online).
 Screens change now and then. If a button has a slightly different name, look for the closest one and ask for help if stuck.
@@ -67,7 +67,7 @@ Pricing note: Vercel's free plan is, as far as I know, for personal and non-comm
 
 ## Step 8. Test it
 
-1. Open your site address. You should see the GemVault sign-in page.
+1. Open your site address. You should see the Vinere sign-in page.
 2. Sign in with your owner email and password. You should land on the Overview page showing "Owner" and a Team link.
 3. Open **Team**. To add staff or sellers: create them in Supabase (Step 6, part 1 and 2), then give each a role on the Team page.
 
@@ -122,4 +122,3 @@ Do these in this order.
 3. The sale leaves sales and profit, and the piece goes back into stock. If the buyer had already paid more than the reduced memo bill, the page tells you how much to hand back, and it is recorded as a refund.
 4. **Returns** in the menu lists every return. Owner and staff can record returns; sellers cannot.
 5. A sale can no longer be removed by editing the piece. It has to be a return, so there is always a record and a password check.
-
