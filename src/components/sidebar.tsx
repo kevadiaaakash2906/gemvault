@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { ArrowLeftRight, Gem, HandCoins, Images, LayoutDashboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, ReceiptText, Settings, TrendingUp, Users, Wallet, X } from "lucide-react";
+import { ArrowLeftRight, Gem, HandCoins, Images, LayoutDashboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, ReceiptText, RotateCcw, Settings, TrendingUp, Users, Wallet, X } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 
-export type NavItem = { href: string; label: string; icon: "overview" | "team" | "orders" | "styles" | "trading" | "memos" | "expenses" | "settings" | "receivables" | "profit" };
-const ICONS = { overview: LayoutDashboard, team: Users, orders: Gem, styles: Images, trading: ArrowLeftRight, memos: ReceiptText, expenses: Wallet, settings: Settings, receivables: HandCoins, profit: TrendingUp };
+export type NavItem = { href: string; label: string; icon: "overview" | "team" | "orders" | "styles" | "trading" | "memos" | "expenses" | "settings" | "receivables" | "profit" | "returns" };
+const ICONS = { overview: LayoutDashboard, team: Users, orders: Gem, styles: Images, trading: ArrowLeftRight, memos: ReceiptText, expenses: Wallet, settings: Settings, receivables: HandCoins, profit: TrendingUp, returns: RotateCcw };
 
 export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: string; roleLabel: string }) {
   const [collapsed, setCollapsed] = useState(false);
