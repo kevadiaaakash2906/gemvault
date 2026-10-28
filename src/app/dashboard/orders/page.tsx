@@ -6,6 +6,8 @@ import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, inr, num, parsePage, pickSort, usd } from "@/lib/ledger";
 import { Tile, TileEmpty, type Fact } from "@/components/tiles";
+import { KpiStrip, type Kpi } from "@/components/kpi";
+import { signedUsd } from "@/lib/reports";
 
 export const metadata: Metadata = { title: "Orders" };
 const SORTS = ["sr_no", "order_date", "style_no", "sale_price", "date_sold"] as const;
@@ -22,6 +24,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const page = parsePage(sp.page);
   const status = STATUSES.includes(sp.status ?? "") ? sp.status : undefined;
   const supabase = await createClient();
+  const kpiRequest = Promise.resolve(supabase.from("orders_kpi").select("*").maybeSingle());   // starts now, so it runs alongside the list
 
   let query = supabase.from("order_overview").select("*", { count: "exact" });
   if (status) query = query.eq("payment_status", status);
@@ -43,6 +46,20 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   (costRes.data ?? []).forEach((c: Record<string, number> & { order_id: string }) => costs.set(c.order_id, c));
   (signed.data ?? []).forEach((x) => { if (x.path && x.signedUrl) thumbUrls.set(x.path, x.signedUrl); });
 
+  const { data: k } = await kpiRequest;
+  const cards: Kpi[] = !k ? [] : owner ? [
+    { label: "Total revenue", value: usd.format(num(k.revenue)), sub: `from ${num(k.sold_items)} sold items` },
+    { label: "Total cost", value: usd.format(num(k.cost)), sub: "manufacturing + labor" },
+    { label: "Gross profit / loss", value: signedUsd(num(k.profit)), sub: "sold pieces with a cost on file", tone: num(k.profit) < 0 ? "bad" : "good" },
+    { label: "Amount collected", value: usd.format(num(k.collected)), sub: "payments received" },
+    { label: "Outstanding balance", value: usd.format(num(k.outstanding)), sub: "across all orders", tone: "warn" },
+    { label: "Stock on hand", value: String(num(k.stock_items)), sub: `unsold items worth ${usd.format(num(k.stock_value))} at cost` },
+  ] : [
+    { label: "Total revenue", value: usd.format(num(k.revenue)), sub: `from ${num(k.sold_items)} sold items` },
+    { label: "Amount collected", value: usd.format(num(k.collected)), sub: "payments received" },
+    { label: "Outstanding balance", value: usd.format(num(k.outstanding)), sub: "across all orders", tone: "warn" },
+    { label: "Stock on hand", value: String(num(k.stock_items)), sub: "pieces not sold yet" },
+  ];
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const base = { q: q || undefined, status, type: sp.type, sort: sp.sort, dir: sp.dir };
@@ -77,6 +94,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           )}
         </div>
       </div>
+
+      {cards.length > 0 && <KpiStrip cards={cards} label="Orders summary" />}
 
       <form method="get" className="grid gap-3 rounded-md border border-gold-soft bg-white p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_auto]">
         <div><label htmlFor="q" className="block text-sm font-medium">Search</label>
