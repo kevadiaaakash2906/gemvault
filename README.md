@@ -1,10 +1,10 @@
-# GemVault
+# Vinere
 
 Jewellery inventory, sales and seller management. Built with Next.js, Supabase, Tailwind CSS and Vercel.
 
 ## Status: your ledger is built (Phases 1 and 2 reworked)
 
-GemVault now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses**, plus **Memos** (one buyer's bill and its payments) and **Rates**.
+Vinere now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses**, plus **Memos** (one buyer's bill and its payments) and **Rates**.
 
 | Done and tested | Not built yet |
 | --- | --- |
