@@ -19,5 +19,6 @@ run_sql_test () {
 run_sql_test supabase/tests/rls.test.sql
 run_sql_test supabase/tests/ledger.test.sql
 run_sql_test supabase/tests/reports.test.sql
+run_sql_test supabase/tests/returns.test.sql
 bash scripts/concurrency-test.sh "$DB"
 echo "Security tests finished: all passed."
