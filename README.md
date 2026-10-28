@@ -9,13 +9,13 @@ GemVault now mirrors your Excel workbook only: **Orders**, **Trading**, **Expens
 | Done and tested | Not built yet |
 | --- | --- |
 | Sign-in, password reset, Owner / Staff / Seller roles | Seller portal and commissions |
-| Who owes me (buyer balances and waiting time) and an owner-only Profit report (per piece, by month, by buyer) | Reports beyond Who owes me and Profit |
+| Who owes me, owner-only Profit report, summary cards, and Returns (password-protected, with refunds and stock restored) | Reports beyond Who owes me and Profit |
 | Orders with every column of your sheet, Pg Wt and cost worked out the same way as your sheet |  |
 | Trading with vendor, purchase price and profit/loss (owner only) | Import screen (import is a one-off SQL file) |
 | Memos, buyers and payments (part payments, cancelling with a reason) | Seller-visible prices |
 | Expenses and Rates (owner only), CSV export in your sheet's column order | End-to-end browser tests |
 | Staff cannot see costs, vendors, expenses or rates; sellers see nothing | |
-| 30 app tests and 135 database checks, including simultaneous payments | |
+| 33 app tests and 190 database checks, including simultaneous payments | |
 
 ## Start here
 
