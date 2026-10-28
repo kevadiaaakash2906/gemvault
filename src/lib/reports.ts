@@ -1,4 +1,5 @@
 /** Helpers for the "Who owes me" and Profit pages. Pure functions, so they are easy to test. */
+import { usd } from "@/lib/ledger";
 
 /** A bill waiting this long (or longer) is shown in amber / red. Change the numbers to suit your business. */
 export const AMBER_AFTER_DAYS = 30;
@@ -41,4 +42,9 @@ export function fmtPct(value: number | null): string {
 export function monthLabel(month: string | null | undefined): string {
   if (!month) return "No sale date";
   return new Date(month.slice(0, 10) + "T00:00:00Z").toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+/** "+$1,234.50" for gains and "-$300.00" for losses (used on profit cards). */
+export function signedUsd(n: number): string {
+  return (n > 0 ? "+" : "") + usd.format(n);
 }
