@@ -58,7 +58,7 @@ export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: st
   return (
     <>
       <header className="flex items-center justify-between bg-forest px-4 py-2 lg:hidden">
-        <p className="font-display text-xl text-ivory">GemVault</p>
+        <p className="font-display text-xl text-ivory">Vinere</p>
         <button onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open} className="grid size-11 place-items-center text-ivory">
           <Menu aria-hidden />
         </button>
@@ -74,7 +74,7 @@ export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: st
         )}
       >
         <div className="mb-6 flex items-center justify-between px-5">
-          <p className={clsx("font-display text-2xl text-ivory", collapsed && "lg:sr-only")}>GemVault</p>
+          <p className={clsx("font-display text-2xl text-ivory", collapsed && "lg:sr-only")}>Vinere</p>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="grid size-11 place-items-center text-ivory lg:hidden">
             <X aria-hidden />
           </button>
