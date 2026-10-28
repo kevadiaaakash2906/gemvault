@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "GemVault", template: "%s | GemVault" },
+  title: { default: "Vinere", template: "%s | Vinere" },
   description: "Jewellery inventory, sales and seller management.",
   robots: { index: false, follow: false },
 };
