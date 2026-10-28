@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
 import { Tile, TileEmpty } from "@/components/tiles";
+import { KpiStrip, type Kpi } from "@/components/kpi";
 
 export const metadata: Metadata = { title: "Expenses" };
 
@@ -18,10 +19,17 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   if (sp.category) query = query.eq("category", sp.category);
   if (q) query = query.or(`description.ilike.%${q}%,seller.ilike.%${q}%,notes.ilike.%${q}%,category.ilike.%${q}%`);
   const from = (page - 1) * PAGE_SIZE;
-  const [{ data: rows, count }, { data: all }] = await Promise.all([
+  const [{ data: rows, count }, { data: all }, { data: k }] = await Promise.all([
     query.order("expense_date", { ascending: false }).order("sr_no", { ascending: false }).range(from, from + PAGE_SIZE - 1),
     supabase.from("expenses").select("category,amount").limit(5000),
+    supabase.from("expenses_kpi").select("*").maybeSingle(),
   ]);
+  const cards: Kpi[] = !k ? [] : [
+    { label: "Total expenses", value: usd.format(num(k.total)), sub: "all time spend" },
+    { label: "Record count", value: String(num(k.entries)), sub: "expense entries" },
+    { label: "Top category", value: k.top_category ?? "—", sub: "highest spend area" },
+    { label: "Avg per entry", value: usd.format(num(k.avg_amount)), sub: "mean expense size" },
+  ];
   const cats = [...new Set((all ?? []).map((e) => e.category as string))].sort();
   const grand = (all ?? []).reduce((n, e) => n + num(e.amount), 0);
   const total = count ?? 0;
@@ -36,6 +44,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           <Link href="/dashboard/expenses/new" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-forest px-4 text-sm font-semibold text-ivory hover:bg-forest-deep"><Plus className="size-4" aria-hidden /> Add expense</Link>
         </div>
       </div>
+      {cards.length > 0 && <KpiStrip cards={cards} label="Expenses summary" />}
       <form method="get" className="grid gap-3 rounded-md border border-gold-soft bg-white p-4 sm:grid-cols-[2fr_1fr_auto]">
         <div><label htmlFor="q" className="block text-sm font-medium">Search</label><input id="q" name="q" defaultValue={q} className="mt-1 min-h-11 w-full rounded-md border border-gold-soft px-3" /></div>
         <div><label htmlFor="category" className="block text-sm font-medium">Category</label>
