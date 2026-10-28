@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageTone, daysWaiting, fmtPct, marginPct, monthLabel, waitingLabel } from "@/lib/reports";
+import { ageTone, daysWaiting, fmtPct, marginPct, monthLabel, signedUsd, waitingLabel } from "@/lib/reports";
 
 const today = new Date("2026-10-27T09:00:00Z");
 
@@ -51,5 +51,13 @@ describe("margin and month labels", () => {
   it("labels months, including sales with no date", () => {
     expect(monthLabel("2026-08-01")).toBe("Aug 2026");
     expect(monthLabel(null)).toBe("No sale date");
+  });
+});
+
+describe("signedUsd", () => {
+  it("puts a plus on gains and keeps the minus on losses", () => {
+    expect(signedUsd(32753.47)).toBe("+$32,753.47");
+    expect(signedUsd(-300)).toBe("-$300.00");
+    expect(signedUsd(0)).toBe("$0.00");
   });
 });
