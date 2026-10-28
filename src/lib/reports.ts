@@ -48,3 +48,8 @@ export function monthLabel(month: string | null | undefined): string {
 export function signedUsd(n: number): string {
   return (n > 0 ? "+" : "") + usd.format(n);
 }
+
+/** Money that must go back to the buyer when a piece is returned: what they have paid above the reduced memo bill. */
+export function refundDue(memoPaid: number, memoBill: number, salePrice: number): number {
+  return Math.max(0, Math.round((memoPaid - (memoBill - salePrice)) * 100) / 100);
+}

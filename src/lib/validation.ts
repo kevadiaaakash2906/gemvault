@@ -117,6 +117,13 @@ export const paymentSchema = z.object({
   key: z.string().max(80).optional(),
 });
 export const voidSchema = z.object({ paymentId: z.uuid(), reason: z.string().trim().min(3, "Give a short reason.").max(300) });
+export const returnSchema = z.object({
+  kind: z.enum(["order", "trade"]),
+  id: z.uuid(),
+  reason: z.string().trim().min(3, "Give a short reason for the return.").max(300, "The reason is too long (300 characters at most)."),
+  password: z.string().min(1, "Enter your password to confirm the return.").max(200),
+  returnedOn: z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a valid return date.")]).optional(),
+});
 export const deleteSchema = z.object({ kind: z.enum(["order", "trade", "expense"]), id: z.uuid() });
 export const ratesSchema = z.object({
   gold_rate: optDecimal(2, "Gold rate", 8).refine((v) => Number(v) > 0, "Enter the gold rate."),
