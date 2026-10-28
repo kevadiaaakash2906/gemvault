@@ -117,12 +117,45 @@ begin
     (select sum(profit) from public.buyer_profit) = 791.27
     and (select sum(order_profit + trade_profit) from public.monthly_profit) = 791.27);
 
+  -- ===== KPI cards (Orders, Trading, Expenses pages) =====
+  select * into r from public.orders_kpi;
+  perform t.ok('orders KPI: 7 sold, 1 in stock, revenue 5500.01', r.sold_items = 7 and r.stock_items = 1 and r.revenue = 5500.01);
+  perform t.ok('orders KPI: cost 4258.73 and profit 441.27 (same as the Profit report)', r.cost = 4258.73 and r.profit = 441.27);
+  perform t.ok('orders KPI: stock on hand is worth its cost (50)', r.stock_value = 50);
+  perform t.ok('orders KPI: shared memo A1 payments split by value, collected 3250, outstanding 2250.01', r.collected = 3250 and r.outstanding = 2250.01);
+  select * into r from public.trades_kpi;
+  perform t.ok('trades KPI: 2 trades, 2 sold, sales 1500, invested 1150, net P/L 350', r.total_trades = 2 and r.sold_items = 2 and r.sales = 1500 and r.invested = 1150 and r.net_pl = 350);
+  perform t.ok('trades KPI: collected 550, outstanding 950', r.collected = 550 and r.outstanding = 950);
+  perform t.ok('orders and trading together equal the memo totals (collected 3800, owed 3200.01)',
+    (select collected from public.orders_kpi) + (select collected from public.trades_kpi) = 3800
+    and (select outstanding from public.orders_kpi) + (select outstanding from public.trades_kpi) = 3200.01);
+  select * into r from public.expenses_kpi;
+  perform t.ok('expenses KPI: total 140, 4 entries, top category Travel, average 35', r.total = 140 and r.entries = 4 and r.top_category = 'Travel' and r.avg_amount = 35);
+
+  perform t.ok('recent payments list the buyer and memo, newest first',
+    (select count(*) from public.recent_payments) = 4
+    and (select buyer from public.recent_payments order by paid_on desc, created_at desc limit 1) = 'GAMMA'
+    and (select memo_no from public.recent_payments order by paid_on desc, created_at desc limit 1) = 'G2');
+  perform t.as_user(owner_id);
+  perform public.void_payment((select id from public.payments where amount = 300), 'Entered twice');
+  perform t.ok('a cancelled payment drops off the recent list', (select count(*) from public.recent_payments) = 3);
+  perform t.admin();
+  update public.payments set voided_at = null, void_reason = null, voided_by = null where amount = 300;
+  perform t.as_user(owner_id);
+
   -- ===== Staff: sees who owes, never profit =====
   perform t.as_user(staff_id);
   perform t.ok('staff can see who owes money', (select count(*) from public.buyer_receivables) = 4 and (select balance_due from public.receivables_summary) = 3200.01);
   perform t.ok('staff get no profit rows', (select count(*) from public.piece_profit) = 0);
   perform t.ok('staff get no monthly profit', (select count(*) from public.monthly_profit) = 0);
   perform t.ok('staff get no buyer profit', (select count(*) from public.buyer_profit) = 0);
+  perform t.ok('staff see order revenue, collected and outstanding but not cost, profit or stock value',
+    (select revenue from public.orders_kpi) = 5500.01 and (select outstanding from public.orders_kpi) = 2250.01
+    and (select cost from public.orders_kpi) is null and (select profit from public.orders_kpi) is null and (select stock_value from public.orders_kpi) is null);
+  perform t.ok('staff see trading sales but not invested or net P/L',
+    (select sales from public.trades_kpi) = 1500 and (select invested from public.trades_kpi) is null and (select net_pl from public.trades_kpi) is null);
+  perform t.ok('staff can see recent payments', (select count(*) from public.recent_payments) = 4);
+  perform t.ok('staff see no expenses', (select entries from public.expenses_kpi) = 0 and (select total from public.expenses_kpi) = 0);
 
   -- ===== Sellers see nothing =====
   perform t.as_user(seller_id);
@@ -131,7 +164,10 @@ begin
     (select count(*) from public.piece_profit) + (select count(*) from public.monthly_profit) + (select count(*) from public.buyer_profit) = 0);
 
   -- ===== Anonymous =====
+  perform t.ok('seller sees no order or trade KPIs', (select sold_items from public.orders_kpi) = 0 and (select total_trades from public.trades_kpi) = 0);
+  perform t.ok('seller sees no payments', (select count(*) from public.recent_payments) = 0);
   perform t.as_anon();
+  perform t.denied('anonymous cannot read order KPIs', $q$select * from public.orders_kpi$q$, 'permission denied');
   perform t.denied('anonymous cannot read who owes', $q$select * from public.buyer_receivables$q$, 'permission denied');
   perform t.denied('anonymous cannot read profit', $q$select * from public.piece_profit$q$, 'permission denied');
   perform t.denied('anonymous cannot read monthly profit', $q$select * from public.monthly_profit$q$, 'permission denied');
