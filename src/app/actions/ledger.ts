@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { deleteSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, tradeSchema, voidSchema } from "@/lib/validation";
+import { deleteSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, returnSchema, tradeSchema, voidSchema } from "@/lib/validation";
 import type { ActionResult } from "@/app/actions/auth";
 
 export type SaveResult = ActionResult & { id?: string };
@@ -74,6 +74,23 @@ export async function voidPayment(values: unknown): Promise<ActionResult> {
   if (error) return { error: friendly(error) };
   revalidatePath("/dashboard", "layout");
   return { success: "Payment cancelled." };
+}
+
+export type ReturnResult = ActionResult & { id?: string; refund?: number };
+
+/** A sold piece comes back. The database checks the person's own login password, so this cannot be skipped. */
+export async function returnPiece(values: unknown): Promise<ReturnResult> {
+  await requirePermission("returns.record");
+  const p = returnSchema.safeParse(values);
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Check the form and try again." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("return_piece", {
+    p_kind: p.data.kind, p_id: p.data.id, p_reason: p.data.reason, p_password: p.data.password, p_returned_on: p.data.returnedOn || null,
+  });
+  if (error) return { error: friendly(error) };
+  revalidatePath("/dashboard", "layout");
+  const r = data as { id: string; refund: number };
+  return { success: "Return recorded.", id: r.id, refund: Number(r.refund) };
 }
 
 export async function deleteRecord(values: unknown): Promise<ActionResult> {
