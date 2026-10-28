@@ -164,7 +164,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       {teamRes && (
         <p className="text-sm text-ink-soft">
-          {teamRes.count ?? 0} {teamRes.count === 1 ? "person has" : "people have"} a role in GemVault. <Link href="/dashboard/team" className="text-forest underline underline-offset-4">Manage team</Link>
+          {teamRes.count ?? 0} {teamRes.count === 1 ? "person has" : "people have"} a role in Vinere. <Link href="/dashboard/team" className="text-forest underline underline-offset-4">Manage team</Link>
         </p>
       )}
     </div>
