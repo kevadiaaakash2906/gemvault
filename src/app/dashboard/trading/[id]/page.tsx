@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteButton } from "@/components/delete-button";
+import { ReturnPiece } from "@/components/return-piece";
 import { TradeForm } from "../trade-form";
 import type { TradeValues } from "@/lib/validation";
 
@@ -31,6 +32,10 @@ export default async function EditTradePage({ params }: { params: Promise<{ id: 
     <div className="space-y-6">
       <h1 className="font-display text-3xl text-forest">Trading item {t.sr_no}</h1>
       <TradeForm initial={initial} isOwner={owner} buyers={(buyers ?? []).map((b) => b.name)} />
+      {t.sale_price !== null && can(session.role, "returns.record") && (
+        <ReturnPiece kind="trade" id={id} label={t.item} buyer={t.sold_to} salePrice={Number(t.sale_price)}
+          memoPaid={Number(t.memo_paid)} memoBill={Number(t.memo_paid) + Number(t.memo_balance)} />
+      )}
       {can(session.role, "records.delete") && t.sale_price === null && <DeleteButton kind="trade" id={id} redirectTo="/dashboard/trading" label="Delete this item" />}
     </div>
   );
