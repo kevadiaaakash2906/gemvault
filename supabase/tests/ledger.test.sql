@@ -64,8 +64,8 @@ begin
   perform t.ok('paid in full', (select payment_status from public.memo_summary where id = memo) = 'Paid');
   perform t.denied('cannot lower the bill below what is paid',
     format($q$select public.save_order(%L::jsonb)$q$, format('{"id":"%s","style_no":"RG-300","sold_to":"CALI JEWELERS","memo_no":"M1","sale_price":"50"}', o3)), 'below the');
-  perform t.denied('cannot remove a sale that leaves payments uncovered',
-    format($q$select public.save_order(%L::jsonb)$q$, format('{"id":"%s","style_no":"BR-100"}', o1)), 'below the');
+  perform t.denied('a sale cannot be removed by editing (it must be a return)',
+    format($q$select public.save_order(%L::jsonb)$q$, format('{"id":"%s","style_no":"BR-100"}', o1)), 'Return this piece');
   perform t.denied('staff cannot cancel payments',
     format($q$select public.void_payment(%L, 'mistake')$q$, pay2), 'only an owner');
   perform t.denied('staff cannot change payments directly',
