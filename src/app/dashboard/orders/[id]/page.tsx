@@ -5,6 +5,7 @@ import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getRates } from "@/lib/rates";
 import { DeleteButton } from "@/components/delete-button";
+import { ReturnPiece } from "@/components/return-piece";
 import { OrderForm } from "../order-form";
 import type { OrderValues } from "@/lib/validation";
 
@@ -41,6 +42,10 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
       <h1 className="font-display text-3xl text-forest">Order {o.sr_no}</h1>
       <OrderForm initial={initial} isOwner={owner} usdRate={rates?.usdRate ?? null}
         buyers={(buyers ?? []).map((b) => b.name)} types={[...new Set((types ?? []).map((t) => t.jewelry_type as string))].sort()} />
+      {o.sale_price !== null && can(session.role, "returns.record") && (
+        <ReturnPiece kind="order" id={id} label={o.style_no} buyer={o.sold_to} salePrice={Number(o.sale_price)}
+          memoPaid={Number(o.memo_paid)} memoBill={Number(o.memo_paid) + Number(o.memo_balance)} />
+      )}
       {can(session.role, "records.delete") && o.sale_price === null && (
         <DeleteButton kind="order" id={id} redirectTo="/dashboard/orders" label="Delete this order" />
       )}
