@@ -42,7 +42,7 @@ export async function requestPasswordReset(values: unknown): Promise<ActionResul
     redirectTo: `${await siteUrl()}/auth/callback?next=/reset-password`,
   });
   // Always the same answer, whether or not the email has an account.
-  return { success: "If that email has a GemVault account, a reset link is on its way. Check your inbox and spam folder." };
+  return { success: "If that email has a Vinere account, a reset link is on its way. Check your inbox and spam folder." };
 }
 
 export async function updatePassword(values: unknown): Promise<ActionResult> {
