@@ -6,6 +6,8 @@ import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
 import { Tile, TileEmpty, type Fact } from "@/components/tiles";
+import { KpiStrip, type Kpi } from "@/components/kpi";
+import { signedUsd } from "@/lib/reports";
 
 export const metadata: Metadata = { title: "Trading" };
 const STATUSES = ["Not Sold", "Unpaid", "Partial", "Paid"];
@@ -19,6 +21,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
   const page = parsePage(sp.page);
   const status = STATUSES.includes(sp.status ?? "") ? sp.status : undefined;
   const supabase = await createClient();
+  const kpiRequest = Promise.resolve(supabase.from("trades_kpi").select("*").maybeSingle());   // starts now, so it runs alongside the list
 
   let query = supabase.from("trade_overview").select("*", { count: "exact" });
   if (status) query = query.eq("payment_status", status);
@@ -31,6 +34,20 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     const { data } = await supabase.from("trade_costs").select("*").in("trade_id", rows.map((r) => r.id));
     (data ?? []).forEach((c) => costs.set(c.trade_id, c));
   }
+  const { data: k } = await kpiRequest;
+  const cards: Kpi[] = !k ? [] : owner ? [
+    { label: "Total trades", value: String(num(k.total_trades)), sub: "buy & sell records" },
+    { label: "Total invested", value: usd.format(num(k.invested)), sub: "capital deployed" },
+    { label: "Total sales", value: usd.format(num(k.sales)), sub: "revenue from sold items" },
+    { label: "Net P/L", value: signedUsd(num(k.net_pl)), sub: "closed trades only", tone: num(k.net_pl) < 0 ? "bad" : "good" },
+    { label: "Collected", value: usd.format(num(k.collected)), sub: "payments received" },
+    { label: "Outstanding", value: usd.format(num(k.outstanding)), sub: "balance due across all", tone: "warn" },
+  ] : [
+    { label: "Total trades", value: String(num(k.total_trades)), sub: "buy & sell records" },
+    { label: "Total sales", value: usd.format(num(k.sales)), sub: "revenue from sold items" },
+    { label: "Collected", value: usd.format(num(k.collected)), sub: "payments received" },
+    { label: "Outstanding", value: usd.format(num(k.outstanding)), sub: "balance due across all", tone: "warn" },
+  ];
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const base = { q: q || undefined, status };
@@ -49,6 +66,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
           {can(session.role, "trades.edit") && <Link href="/dashboard/trading/new" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-forest px-4 text-sm font-semibold text-ivory hover:bg-forest-deep"><Plus className="size-4" aria-hidden /> Add item</Link>}
         </div>
       </div>
+      {cards.length > 0 && <KpiStrip cards={cards} label="Trading summary" />}
       <form method="get" className="grid gap-3 rounded-md border border-gold-soft bg-white p-4 sm:grid-cols-[2fr_1fr_auto]">
         <div><label htmlFor="q" className="block text-sm font-medium">Search</label><input id="q" name="q" defaultValue={q} placeholder="Item, sold to, memo, notes" className="mt-1 min-h-11 w-full rounded-md border border-gold-soft px-3" /></div>
         <div><label htmlFor="status" className="block text-sm font-medium">Payment status</label>
