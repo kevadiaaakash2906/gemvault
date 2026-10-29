@@ -56,7 +56,7 @@ export async function GET(request: Request) {
         r.push(t.notes as Cell);
         return r;
       })];
-    } else if (sheet === "expenses" && can(session.role, "expenses.manage")) {
+    } else if (sheet === "expenses" && can(session.role, "expenses.view")) {
       const ex = await allRows(supabase, "expenses", "sr_no");
       rows = [["Sr. No.", "Date", "Category", "Description", "Amount", "Seller", "Notes"], ...ex.map((e) => [e.sr_no, e.expense_date, e.category, e.description, e.amount, e.seller, e.notes].map((x) => x as Cell))];
     } else {
