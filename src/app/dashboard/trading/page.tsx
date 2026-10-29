@@ -86,7 +86,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
               const profit = c && r.sale_price !== null ? num(r.sale_price) - num(c.purchase_price) : null;
               return (
                 <tr key={r.id} className="hover:bg-ivory">
-                  <td className="px-2 py-2"><Link href={`/dashboard/trading/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link></td>
+                  <td className="px-2 py-2">{can(session.role, "trades.edit") ? <Link href={`/dashboard/trading/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link> : r.sr_no}</td>
                   <td className="px-2 py-2 whitespace-nowrap">{fmtDate(r.trade_date)}</td>
                   <td className="px-2 py-2">{r.item}</td>
                   {owner && <><td className="px-2 py-2">{c?.vendor ?? "—"}</td><td className="px-2 py-2 text-right">{c ? usd.format(num(c.purchase_price)) : "—"}</td></>}
@@ -122,7 +122,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
           return (
             <Tile key={r.id} title={`#${r.sr_no} · ${r.item}`} subtitle={fmtDate(r.trade_date)}
               right={<><p className="font-medium">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "Not sold"}</p>{badge(r.payment_status)}</>}
-              facts={facts} href={`/dashboard/trading/${r.id}`} hrefLabel="Open / edit" />
+              facts={facts} href={can(session.role, "trades.edit") ? `/dashboard/trading/${r.id}` : undefined} hrefLabel="Open / edit" />
           );
         })}
         {(rows ?? []).length === 0 && !error && <TileEmpty>No items yet.</TileEmpty>}
