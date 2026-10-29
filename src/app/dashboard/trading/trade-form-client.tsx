@@ -35,7 +35,7 @@ export function TradeForm({ initial, isOwner, buyers }: { initial: TradeValues; 
       </fieldset>
       {isOwner && (
         <fieldset className="space-y-4 rounded-md border border-gold-soft bg-parchment p-5">
-          <legend className="px-2 font-display text-xl text-forest">Purchase (owner only)</legend>
+          <legend className="px-2 font-display text-xl text-forest">Purchase</legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="vendor" label="Vendor" error={errors.cost?.vendor?.message} {...register("cost.vendor")} />
             <Field id="purchase_price" label="Purchase Price (US$)" inputMode="decimal" error={errors.cost?.purchase_price?.message} {...register("cost.purchase_price")} />
