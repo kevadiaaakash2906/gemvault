@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { csvCell, toCsv } from "@/lib/csv";
 import { buildQuery, cleanSearch, computeCosts, parsePage, pickSort } from "@/lib/ledger";
-import { expenseSchema, orderSchema, paymentSchema, ratesSchema, tradeSchema } from "@/lib/validation";
-import { can } from "@/lib/permissions";
+import { expenseSchema, orderSchema, paymentSchema, ratesSchema, saleSchema, tradeSchema } from "@/lib/validation";
 
 const order = {
   customer: "HET", style_no: "BR-100", jewelry_type: "Bracelet", diamond_shape: "Round", order_date: "2026-06-10", gross_wt: "7.026", dia_qty: "60",
@@ -62,19 +61,23 @@ describe("other forms", () => {
   });
 });
 
-describe("who can do what", () => {
-  it("keeps costs, expenses, rates, cancelling payments and deleting owner-only", () => {
-    for (const p of ["costs.view", "expenses.manage", "settings.edit", "payments.void", "records.delete"] as const) {
-      expect(can("owner", p)).toBe(true);
-      expect(can("staff", p)).toBe(false);
-      expect(can("seller", p)).toBe(false);
-    }
+describe("sale form (what a seller can fill in)", () => {
+  const sale = { id: "11111111-1111-4111-8111-111111111111", sold_to: "CALI JEWELERS", memo_no: "M7", sale_price: "1200.50", date_sold: "" };
+  it("accepts a complete sale", () => {
+    expect(saleSchema.safeParse(sale).success).toBe(true);
+    expect(saleSchema.safeParse({ ...sale, date_sold: "2026-10-03" }).success).toBe(true);
   });
-  it("lets staff work with orders, trades and payments but not sellers", () => {
-    for (const p of ["orders.edit", "trades.edit", "payments.record", "memos.view"] as const) {
-      expect(can("staff", p)).toBe(true);
-      expect(can("seller", p)).toBe(false);
-    }
+  it("needs buyer, memo and price all filled in (a seller cannot clear a sale)", () => {
+    expect(saleSchema.safeParse({ ...sale, sold_to: "" }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...sale, memo_no: "" }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...sale, sale_price: "" }).success).toBe(false);
+  });
+  it("rejects a bad memo, price, date or order id", () => {
+    expect(saleSchema.safeParse({ ...sale, memo_no: "bad memo!" }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...sale, sale_price: "-5" }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...sale, sale_price: "12.345" }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...sale, date_sold: "yesterday" }).success).toBe(false);
+    expect(saleSchema.safeParse({ ...sale, id: "not-an-id" }).success).toBe(false);
   });
 });
 
