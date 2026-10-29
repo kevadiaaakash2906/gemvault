@@ -109,7 +109,7 @@ export function OrderForm({
 
       {isOwner && usdRate && (
         <fieldset className="space-y-4 rounded-md border border-gold-soft bg-parchment p-5">
-          <legend className="px-2 font-display text-xl text-forest">Cost (owner only)</legend>
+          <legend className="px-2 font-display text-xl text-forest">Cost</legend>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Field id="gold_rate" label="Gold rate (₹ per g)" inputMode="decimal" error={errors.cost?.gold_rate?.message} {...register("cost.gold_rate")} />
             <Field id="diam_amount" label="Diam Amount (₹)" inputMode="decimal" error={errors.cost?.diam_amount?.message} {...register("cost.diam_amount")} />
