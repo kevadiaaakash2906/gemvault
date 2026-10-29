@@ -117,6 +117,14 @@ export const paymentSchema = z.object({
   key: z.string().max(80).optional(),
 });
 export const voidSchema = z.object({ paymentId: z.uuid(), reason: z.string().trim().min(3, "Give a short reason.").max(300) });
+export const saleSchema = z.object({
+  id: z.uuid("Choose an order first."),
+  sold_to: z.string().trim().min(1, "Enter who it was sold to.").max(120, "Sold to is too long."),
+  memo_no: z.string().trim().min(1, "Enter the memo number.").regex(/^[A-Za-z0-9._-]{1,20}$/, "Memo: letters, numbers and . _ - only (max 20)."),
+  sale_price: z.string().trim().regex(/^\d{1,12}(\.\d{1,2})?$/, "Sale price: enter a number like 1200 or 1200.50."),
+  date_sold: date,
+});
+export type SaleValues = z.infer<typeof saleSchema>;
 export const returnSchema = z.object({
   kind: z.enum(["order", "trade"]),
   id: z.uuid(),
