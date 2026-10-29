@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { deleteSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, returnSchema, tradeSchema, voidSchema } from "@/lib/validation";
+import { deleteSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, returnSchema, saleSchema, tradeSchema, voidSchema } from "@/lib/validation";
 import type { ActionResult } from "@/app/actions/auth";
 
 export type SaveResult = ActionResult & { id?: string };
@@ -20,24 +20,36 @@ function friendly(error: { code?: string; message: string }): string {
 }
 
 export async function saveOrder(values: unknown): Promise<SaveResult> {
-  const session = await requirePermission("orders.edit");
+  await requirePermission("orders.edit");
   const parsed = orderSchema.safeParse(values);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const { cost, ...order } = parsed.data;
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("save_order", { p: order, p_cost: session.role === "owner" && cost ? cost : null });
+  const { data, error } = await supabase.rpc("save_order", { p: order, p_cost: cost ?? null });
   if (error) return { error: friendly(error) };
   revalidatePath("/dashboard", "layout");
   return { id: data as string, success: "Saved." };
 }
 
+/** Sellers (and staff/owner) record or change the sale part of an existing order. Nothing else on the order can change. */
+export async function saveOrderSale(values: unknown): Promise<SaveResult> {
+  await requirePermission("orders.sale");
+  const parsed = saleSchema.safeParse(values);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("save_order_sale", { p: parsed.data });
+  if (error) return { error: friendly(error) };
+  revalidatePath("/dashboard", "layout");
+  return { id: data as string, success: "Sale saved." };
+}
+
 export async function saveTrade(values: unknown): Promise<SaveResult> {
-  const session = await requirePermission("trades.edit");
+  await requirePermission("trades.edit");
   const parsed = tradeSchema.safeParse(values);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const { cost, ...trade } = parsed.data;
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("save_trade", { p: trade, p_cost: session.role === "owner" && cost ? cost : null });
+  const { data, error } = await supabase.rpc("save_trade", { p: trade, p_cost: cost ?? null });
   if (error) return { error: friendly(error) };
   revalidatePath("/dashboard", "layout");
   return { id: data as string, success: "Saved." };
