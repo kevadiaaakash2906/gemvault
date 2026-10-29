@@ -111,8 +111,9 @@ Do these in this order.
    `supabase/migrations/20261027000004_reports.sql`, and click **Run**. Expect "Success. No rows returned". It only adds read-only views and changes none of your data.
    Then do the same with `supabase/migrations/20261027000005_kpi.sql` (the summary cards on Orders, Trading, Expenses and the Overview).
    Then `supabase/migrations/20261027000006_returns.sql` (returns). It adds the Returns list and the return function, and makes the memo totals subtract refunds.
+   Then `supabase/migrations/20261027000007_roles.sql` (the Owner / Staff / Seller rules). Run these in number order: 4, 5, 6, then 7.
 2. **Upload the changed files** to GitHub (same way as before) and wait for Vercel to show **Ready**.
-3. **Who owes me** appears in the menu for the owner and staff. **Profit** appears for the owner only.
+3. **Who owes me** and **Profit** appear in the menu for everyone who can see the ledger (owner, staff and seller).
 4. If Profit says some sold pieces have "no cost on file", open **Show them**, then open each piece and enter its cost. Those pieces are left out of profit until then.
 
 ## Returns
@@ -122,3 +123,14 @@ Do these in this order.
 3. The sale leaves sales and profit, and the piece goes back into stock. If the buyer had already paid more than the reduced memo bill, the page tells you how much to hand back, and it is recorded as a refund.
 4. **Returns** in the menu lists every return. Owner and staff can record returns; sellers cannot.
 5. A sale can no longer be removed by editing the piece. It has to be a return, so there is always a record and a password check.
+
+## Roles
+
+| Role | What they can do |
+| --- | --- |
+| **Owner** | Everything |
+| **Staff** | See and edit everything except **Team** (this includes costs, expenses, Rates, profit, cancelling payments and deleting) |
+| **Seller** | See everything staff see except **Rates** and **Team**. A seller can only record or change the sale on an existing order: Sold to, Memo, Sale price and Date sold. A seller opens an order from the Orders tab and fills in the Sale box |
+
+To give someone a role, see "Adding people" above. If you later want sellers not to see costs, profit or expenses, tell me and I will change it (it is one database function and one line in the app).
+
