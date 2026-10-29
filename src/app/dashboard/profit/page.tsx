@@ -71,7 +71,7 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
     <div className="space-y-5">
       <div>
         <h1 className="font-display text-3xl text-forest">Profit</h1>
-        <p className="text-ink-soft">Owner only. All figures in US dollars. Profit is counted when a piece is sold, whether or not it has been paid for yet. A returned piece is taken out of sales and profit.</p>
+        <p className="text-ink-soft">All figures in US dollars. Profit is counted when a piece is sold, whether or not it has been paid for yet. A returned piece is taken out of sales and profit.</p>
       </div>
 
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
