@@ -12,7 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (can(session.role, "memos.view")) items.push({ href: "/dashboard/memos", label: "Memos", icon: "memos" });
   if (can(session.role, "receivables.view")) items.push({ href: "/dashboard/receivables", label: "Who owes me", icon: "receivables" });
   if (can(session.role, "returns.view")) items.push({ href: "/dashboard/returns", label: "Returns", icon: "returns" });
-  if (can(session.role, "expenses.manage")) items.push({ href: "/dashboard/expenses", label: "Expenses", icon: "expenses" });
+  if (can(session.role, "expenses.view")) items.push({ href: "/dashboard/expenses", label: "Expenses", icon: "expenses" });
   if (can(session.role, "reports.profit")) items.push({ href: "/dashboard/profit", label: "Profit", icon: "profit" });
   if (can(session.role, "settings.edit")) items.push({ href: "/dashboard/settings", label: "Rates", icon: "settings" });
   if (can(session.role, "team.manage")) items.push({ href: "/dashboard/team", label: "Team", icon: "team" });
