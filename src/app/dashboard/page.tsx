@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireSession } from "@/lib/auth";
-import { can, ROLE_LABEL } from "@/lib/permissions";
+import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import clsx from "clsx";
@@ -70,7 +70,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       {denied && <Notice tone="error">You do not have permission to open that page.</Notice>}
       <div>
         <h1 className="font-display text-3xl text-forest">Welcome{session.fullName ? `, ${session.fullName}` : ""}</h1>
-        <p className="mt-1 text-ink-soft">Signed in as {session.email} · {ROLE_LABEL[role]}</p>
       </div>
 
       {actions.length > 0 && (
