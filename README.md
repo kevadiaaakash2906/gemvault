@@ -8,14 +8,22 @@ Vinere now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses
 
 | Done and tested | Not built yet |
 | --- | --- |
-| Sign-in, password reset, Owner / Staff / Seller roles | Seller portal and commissions |
-| Who owes me, owner-only Profit report, summary cards, and Returns (password-protected, with refunds and stock restored) | Reports beyond Who owes me and Profit |
+| Sign-in, password reset, Owner / Staff / Seller roles (see Roles below) | Seller portal and commissions |
+| Who owes me, Profit report, summary cards, and Returns (password-protected, with refunds and stock restored) | Reports beyond Who owes me and Profit |
 | Orders with every column of your sheet, Pg Wt and cost worked out the same way as your sheet |  |
-| Trading with vendor, purchase price and profit/loss (owner only) | Import screen (import is a one-off SQL file) |
-| Memos, buyers and payments (part payments, cancelling with a reason) | Seller-visible prices |
-| Expenses and Rates (owner only), CSV export in your sheet's column order | End-to-end browser tests |
-| Staff cannot see costs, vendors, expenses or rates; sellers see nothing | |
-| 33 app tests and 190 database checks, including simultaneous payments | |
+| Trading with vendor, purchase price and profit/loss | Import screen (import is a one-off SQL file) |
+| Memos, buyers and payments (part payments, cancelling with a reason) | |
+| Expenses and Rates, CSV export in your sheet's column order | End-to-end browser tests |
+| Roles enforced in the database as well as in the menus | |
+| 34 app tests and 200 database checks, including simultaneous payments | |
+
+## Roles
+
+| Role | What they can do |
+| --- | --- |
+| Owner | Everything |
+| Staff | See and edit everything except Team |
+| Seller | See everything staff see except Rates. The only thing a seller can edit is the sale (Sold to, Memo, Sale price, Date sold) on an existing order, because staff enter the order details and cost |
 
 ## Start here
 
