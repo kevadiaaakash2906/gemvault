@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Download, Plus } from "lucide-react";
 import { requirePermission } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
 import { Tile, TileEmpty } from "@/components/tiles";
@@ -10,7 +11,8 @@ import { KpiStrip, type Kpi } from "@/components/kpi";
 export const metadata: Metadata = { title: "Expenses" };
 
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ q?: string; category?: string; page?: string }> }) {
-  await requirePermission("expenses.manage");
+  const session = await requirePermission("expenses.view");
+  const manage = can(session.role, "expenses.manage");
   const sp = await searchParams;
   const q = cleanSearch(sp.q);
   const page = parsePage(sp.page);
@@ -41,7 +43,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         <div><h1 className="font-display text-3xl text-forest">Expenses</h1><p className="text-ink-soft">{total} {total === 1 ? "entry" : "entries"} · all entries total {usd.format(grand)}</p></div>
         <div className="flex gap-2">
           <a href="/dashboard/export?sheet=expenses" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-gold-soft bg-white px-4 text-sm font-semibold hover:bg-parchment"><Download className="size-4" aria-hidden /> Export CSV</a>
-          <Link href="/dashboard/expenses/new" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-forest px-4 text-sm font-semibold text-ivory hover:bg-forest-deep"><Plus className="size-4" aria-hidden /> Add expense</Link>
+          {manage && <Link href="/dashboard/expenses/new" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-forest px-4 text-sm font-semibold text-ivory hover:bg-forest-deep"><Plus className="size-4" aria-hidden /> Add expense</Link>}
         </div>
       </div>
       {cards.length > 0 && <KpiStrip cards={cards} label="Expenses summary" />}
@@ -58,7 +60,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           <tbody className="divide-y divide-gold-soft">
             {(rows ?? []).map((e) => (
               <tr key={e.id} className="hover:bg-ivory">
-                <td className="px-3 py-2"><Link href={`/dashboard/expenses/${e.id}`} className="font-medium text-forest underline underline-offset-4">{e.sr_no}</Link></td>
+                <td className="px-3 py-2">{manage ? <Link href={`/dashboard/expenses/${e.id}`} className="font-medium text-forest underline underline-offset-4">{e.sr_no}</Link> : e.sr_no}</td>
                 <td className="px-3 py-2 whitespace-nowrap">{fmtDate(e.expense_date)}</td><td className="px-3 py-2">{e.category}</td><td className="px-3 py-2">{e.description}</td>
                 <td className="px-3 py-2 text-right">{usd.format(num(e.amount))}</td><td className="px-3 py-2">{e.seller ?? "—"}</td><td className="px-3 py-2">{e.notes ?? ""}</td>
               </tr>
@@ -73,7 +75,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           <Tile key={e.id} title={e.description} subtitle={`${e.category} · ${fmtDate(e.expense_date)}`}
             right={<p className="font-medium">{usd.format(num(e.amount))}</p>}
             facts={[["Sr. No.", e.sr_no], ["Seller", e.seller ?? "—"], ["Notes", e.notes ?? "—"]]}
-            href={`/dashboard/expenses/${e.id}`} hrefLabel="Open / edit" />
+            href={manage ? `/dashboard/expenses/${e.id}` : undefined} hrefLabel="Open / edit" />
         ))}
         {(rows ?? []).length === 0 && <TileEmpty>No expenses yet.</TileEmpty>}
       </ul>
