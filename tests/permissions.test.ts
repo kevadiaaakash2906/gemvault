@@ -1,28 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { can, isPublicPath, safeNextPath } from "@/lib/permissions";
+import { PERMISSIONS, can, isPublicPath, safeNextPath, type Permission, type Role } from "@/lib/permissions";
 import { loginSchema, newPasswordSchema, setRoleSchema } from "@/lib/validation";
 
-describe("role permissions", () => {
-  it("lets only the owner manage the team, settings and audit log", () => {
-    for (const p of ["team.manage", "settings.edit", "audit.view", "costs.view"] as const) {
-      expect(can("owner", p)).toBe(true);
-      expect(can("staff", p)).toBe(false);
+const ALL = Object.keys(PERMISSIONS) as Permission[];
+const allowed = (role: Role) => ALL.filter((p) => can(role, p)).sort();
+
+describe("the three roles", () => {
+  it("owner has full power", () => {
+    expect(allowed("owner")).toEqual([...ALL].sort());
+  });
+  it("staff see and edit everything except Team and the audit log", () => {
+    expect(allowed("staff")).toEqual(ALL.filter((p) => p !== "team.manage" && p !== "audit.view").sort());
+    expect(can("staff", "settings.edit")).toBe(true);     // Rates
+    expect(can("staff", "costs.view")).toBe(true);
+    expect(can("staff", "team.manage")).toBe(false);
+  });
+  it("a seller sees what staff see except Rates, and can only record the sale on an order", () => {
+    expect(allowed("seller")).toEqual([
+      "costs.view", "dashboard.view", "expenses.view", "memos.view", "orders.sale", "orders.view",
+      "receivables.view", "reports.profit", "returns.view", "styles.view", "trades.view",
+    ].sort());
+    expect(can("seller", "settings.edit")).toBe(false);   // no Rates tab
+    expect(can("seller", "team.manage")).toBe(false);
+    for (const p of ["orders.edit", "trades.edit", "payments.record", "payments.void", "expenses.manage", "records.delete", "returns.record"] as const) {
       expect(can("seller", p)).toBe(false);
-    }
-  });
-  it("lets staff see who owes money but keeps the profit report owner-only", () => {
-    expect(can("owner", "receivables.view")).toBe(true);
-    expect(can("staff", "receivables.view")).toBe(true);
-    expect(can("seller", "receivables.view")).toBe(false);
-    expect(can("owner", "reports.profit")).toBe(true);
-    expect(can("staff", "reports.profit")).toBe(false);
-    expect(can("seller", "reports.profit")).toBe(false);
-  });
-  it("lets owner and staff record returns, never sellers", () => {
-    for (const perm of ["returns.record", "returns.view"] as const) {
-      expect(can("owner", perm)).toBe(true);
-      expect(can("staff", perm)).toBe(true);
-      expect(can("seller", perm)).toBe(false);
     }
   });
   it("denies everything when there is no role", () => {
