@@ -2,7 +2,7 @@
 -- Works on a clean slate inside a transaction that is rolled back, so it leaves nothing behind.
 begin;
 select t.admin();
-truncate public.payments, public.order_costs, public.trade_costs, public.orders, public.trades,
+truncate public.returns, public.payments, public.order_costs, public.trade_costs, public.orders, public.trades,
   public.expenses, public.memos, public.buyers;
 update public.business_settings set gold_rate = 17000, usd_rate = 94;
 
@@ -143,29 +143,30 @@ begin
   update public.payments set voided_at = null, void_reason = null, voided_by = null where amount = 300;
   perform t.as_user(owner_id);
 
-  -- ===== Staff: sees who owes, never profit =====
+  -- ===== Staff: see everything, including costs and profit =====
   perform t.as_user(staff_id);
   perform t.ok('staff can see who owes money', (select count(*) from public.buyer_receivables) = 4 and (select balance_due from public.receivables_summary) = 3200.01);
-  perform t.ok('staff get no profit rows', (select count(*) from public.piece_profit) = 0);
-  perform t.ok('staff get no monthly profit', (select count(*) from public.monthly_profit) = 0);
-  perform t.ok('staff get no buyer profit', (select count(*) from public.buyer_profit) = 0);
-  perform t.ok('staff see order revenue, collected and outstanding but not cost, profit or stock value',
-    (select revenue from public.orders_kpi) = 5500.01 and (select outstanding from public.orders_kpi) = 2250.01
-    and (select cost from public.orders_kpi) is null and (select profit from public.orders_kpi) is null and (select stock_value from public.orders_kpi) is null);
-  perform t.ok('staff see trading sales but not invested or net P/L',
-    (select sales from public.trades_kpi) = 1500 and (select invested from public.trades_kpi) is null and (select net_pl from public.trades_kpi) is null);
+  perform t.ok('staff see the whole profit report',
+    (select count(*) from public.piece_profit) = 9 and (select count(*) from public.monthly_profit) = 5 and (select count(*) from public.buyer_profit) = 4
+    and (select sum(net_profit) from public.monthly_profit) = 651.27);
+  perform t.ok('staff see order cost, profit and stock value',
+    (select cost from public.orders_kpi) = 4258.73 and (select profit from public.orders_kpi) = 441.27 and (select stock_value from public.orders_kpi) = 50);
+  perform t.ok('staff see trading invested and net P/L', (select invested from public.trades_kpi) = 1150 and (select net_pl from public.trades_kpi) = 350);
   perform t.ok('staff can see recent payments', (select count(*) from public.recent_payments) = 4);
-  perform t.ok('staff see no expenses', (select entries from public.expenses_kpi) = 0 and (select total from public.expenses_kpi) = 0);
+  perform t.ok('staff see expenses', (select entries from public.expenses_kpi) = 4 and (select total from public.expenses_kpi) = 140);
 
-  -- ===== Sellers see nothing =====
+  -- ===== Sellers: the same view as staff =====
   perform t.as_user(seller_id);
-  perform t.ok('seller sees no buyers owing', (select count(*) from public.buyer_receivables) = 0 and (select balance_due from public.receivables_summary) = 0);
-  perform t.ok('seller gets no profit rows',
-    (select count(*) from public.piece_profit) + (select count(*) from public.monthly_profit) + (select count(*) from public.buyer_profit) = 0);
+  perform t.ok('seller can see who owes money', (select count(*) from public.buyer_receivables) = 4 and (select balance_due from public.receivables_summary) = 3200.01);
+  perform t.ok('seller sees the profit report', (select count(*) from public.piece_profit) = 9 and (select sum(net_profit) from public.monthly_profit) = 651.27);
+  perform t.ok('seller sees order and trade KPIs', (select cost from public.orders_kpi) = 4258.73 and (select invested from public.trades_kpi) = 1150);
+  perform t.ok('seller can see recent payments and expenses', (select count(*) from public.recent_payments) = 4 and (select entries from public.expenses_kpi) = 4);
 
-  -- ===== Anonymous =====
-  perform t.ok('seller sees no order or trade KPIs', (select sold_items from public.orders_kpi) = 0 and (select total_trades from public.trades_kpi) = 0);
-  perform t.ok('seller sees no payments', (select count(*) from public.recent_payments) = 0);
+  -- ===== Role-less users and anonymous visitors =====
+  perform t.as_user('00000000-0000-0000-0000-0000000000ff');
+  perform t.ok('someone with no role sees nothing',
+    (select count(*) from public.buyer_receivables) = 0 and (select count(*) from public.piece_profit) = 0
+    and (select count(*) from public.recent_payments) = 0 and (select entries from public.expenses_kpi) = 0);
   perform t.as_anon();
   perform t.denied('anonymous cannot read order KPIs', $q$select * from public.orders_kpi$q$, 'permission denied');
   perform t.denied('anonymous cannot read who owes', $q$select * from public.buyer_receivables$q$, 'permission denied');

@@ -95,12 +95,12 @@ begin
   r := public.return_piece('order', e, 'Wrong item sent', 'staff-pw');
   perform t.ok('staff can return a piece with their own password', (r ->> 'refund')::numeric = 0 and (select sale_price is null from public.orders where id = e));
   perform t.ok('staff can read the returns list', (select count(*) from public.returns) = 4);
-  perform t.ok('staff cannot see costs through returns', (select count(*) from public.order_costs) = 0);
+  perform t.ok('staff can see costs', (select count(*) from public.order_costs) > 0);
 
   -- ===== Sellers and anonymous =====
   perform t.as_user(seller_id);
   perform t.denied('sellers cannot return pieces', format($q$select public.return_piece('order', %L, 'Changed mind', 'seller-pw')$q$, a), 'permission');
-  perform t.ok('sellers cannot read returns', (select count(*) from public.returns) = 0);
+  perform t.ok('sellers can read the returns list', (select count(*) from public.returns) = 4);
   perform t.as_anon();
   perform t.denied('anonymous cannot return', format($q$select public.return_piece('order', %L, 'x', 'y')$q$, a), 'permission denied');
   perform t.denied('anonymous cannot read returns', $q$select * from public.returns$q$, 'permission denied');

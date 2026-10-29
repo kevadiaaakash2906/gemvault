@@ -76,10 +76,10 @@ begin
     format($q$select public.set_user_role(%L, 'owner')$q$, sellera), 'only an owner');
   perform t.denied('staff cannot deactivate users',
     format($q$select public.set_user_active(%L, false)$q$, sellera), 'only an owner');
-  perform t.ok('staff cannot read the rate settings', (select count(*) from public.business_settings) = 0);
+  perform t.ok('staff can read the rate settings', (select count(*) from public.business_settings) = 1);
   update public.business_settings set gold_rate = 1;
   get diagnostics n = row_count;
-  perform t.ok('staff cannot edit business settings', n = 0);
+  perform t.ok('staff can edit the rate settings', n = 1);
   perform t.ok('staff cannot read the audit log', (select count(*) from public.audit_logs) = 0);
   perform t.ok('staff sees only their own profile', (select count(*) from public.profiles) = 1);
 

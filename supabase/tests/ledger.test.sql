@@ -4,20 +4,19 @@ declare
   owner_id uuid := '00000000-0000-0000-0000-000000000001';
   staff_id uuid := '00000000-0000-0000-0000-000000000002';
   seller_id uuid := '00000000-0000-0000-0000-000000000003';
-  o1 uuid; o2 uuid; o3 uuid; tr uuid; ex uuid; pay1 uuid; pay2 uuid; memo uuid; n int; c record;
+  o1 uuid; o2 uuid; o3 uuid; o4 uuid; tr uuid; ex uuid; pay1 uuid; pay2 uuid; pay3 uuid; memo uuid; n int; c record;
 begin
   perform t.admin();
   -- Starting rates are the old app's defaults. Set the owner's rate for this test:
   update public.business_settings set gold_rate = 17000, usd_rate = 94;
 
-  -- staff can add an order but never sees or sets costs
+  -- staff can add an order and set and read its cost
   perform t.as_user(staff_id);
   o1 := public.save_order('{"customer":"HET","style_no":"BR-100","jewelry_type":"Bracelet","diamond_shape":"Round","order_date":"2026-06-10","gross_wt":"7.026","dia_qty":"60","in_ct":"5.15","colour_stone":"0","net_wt":"5.996","multiplier":"0.595"}'::jsonb);
   perform t.ok('staff can create an order (weights only)', (select pg_wt from public.orders where id = o1) = 3.568);
   perform t.ok('staff gets the next serial number', (select sr_no from public.orders where id = o1) >= 1);
-  perform t.ok('staff cannot read order costs', (select count(*) from public.order_costs) = 0);
-  perform t.denied('staff cannot set costs',
-    format($q$select public.save_order(%L::jsonb, '{"diam_amount":"100"}'::jsonb)$q$, format('{"id":"%s","style_no":"BR-100"}', o1)), 'only an owner');
+  perform public.save_order(format('{"id":"%s","customer":"HET","style_no":"BR-100","net_wt":"5.996","multiplier":"0.595"}', o1)::jsonb, '{"diam_amount":"100"}'::jsonb);
+  perform t.ok('staff can set and read an order cost', (select diam_amount from public.order_costs where order_id = o1) = 100);
   perform t.denied('staff cannot write orders directly', $q$update public.orders set style_no = 'X'$q$, 'permission denied');
   perform t.denied('net weight above gross weight rejected',
     $q$select public.save_order('{"style_no":"BAD","gross_wt":"1","net_wt":"2"}'::jsonb)$q$, 'check constraint');
@@ -66,13 +65,13 @@ begin
     format($q$select public.save_order(%L::jsonb)$q$, format('{"id":"%s","style_no":"RG-300","sold_to":"CALI JEWELERS","memo_no":"M1","sale_price":"50"}', o3)), 'below the');
   perform t.denied('a sale cannot be removed by editing (it must be a return)',
     format($q$select public.save_order(%L::jsonb)$q$, format('{"id":"%s","style_no":"BR-100"}', o1)), 'Return this piece');
-  perform t.denied('staff cannot cancel payments',
-    format($q$select public.void_payment(%L, 'mistake')$q$, pay2), 'only an owner');
+  perform t.denied('staff may cancel payments, but a reason is required (not a permission error)',
+    format($q$select public.void_payment(%L, '')$q$, pay2), 'reason');
   perform t.denied('staff cannot change payments directly',
     $q$update public.payments set amount = 1$q$, 'permission denied');
   perform t.denied('staff cannot delete payments', $q$delete from public.payments$q$, 'permission denied');
-  perform t.denied('staff cannot delete records',
-    format($q$select public.delete_record('order', %L)$q$, o2), 'only an owner');
+  perform public.delete_record('order', o2);
+  perform t.ok('staff can delete an unsold order', (select count(*) from public.orders where id = o2) = 0);
 
   perform t.as_user(owner_id);
   perform t.denied('cancelling a payment needs a reason',
@@ -86,17 +85,14 @@ begin
   -- deleting
   perform t.denied('a sold order cannot be deleted',
     format($q$select public.delete_record('order', %L)$q$, o1), 'sold order');
-  perform public.delete_record('order', o2);
-  perform t.ok('an unsold order can be deleted by the owner', (select count(*) from public.orders where id = o2) = 0);
   perform t.ok('the deleted order is copied into the audit log',
     (select count(*) from public.audit_logs where action = 'order.deleted' and details ->> 'style_no' = 'ER-200') = 1);
 
   -- trading
   perform t.as_user(staff_id);
   tr := public.save_trade('{"trade_date":"2026-08-08","item":"EM BEZEL 14KWG","notes":"test"}'::jsonb);
-  perform t.denied('staff cannot set trade purchase price',
-    format($q$select public.save_trade(%L::jsonb, '{"purchase_price":"2495.90"}'::jsonb)$q$, format('{"id":"%s","item":"EM BEZEL 14KWG"}', tr)), 'only an owner');
-  perform t.ok('staff cannot read trade costs', (select count(*) from public.trade_costs) = 0);
+  perform public.save_trade(format('{"id":"%s","item":"EM BEZEL 14KWG"}', tr)::jsonb, '{"vendor":"CARAT CASTING","purchase_price":"2495.90"}'::jsonb);
+  perform t.ok('staff can set and read the purchase price', (select purchase_price from public.trade_costs where trade_id = tr) = 2495.90);
   perform public.save_trade(format('{"id":"%s","item":"EM BEZEL 14KWG","sold_to":"VELVET BOX JEWELS","memo_no":"M2","sale_price":"2880"}', tr)::jsonb);
   perform t.ok('a sold trade counts in its memo', (select total_bill from public.memo_summary where memo_no = 'M2') = 2880);
   perform t.as_user(owner_id);
@@ -104,30 +100,53 @@ begin
     '{"vendor":"CARAT CASTING","purchase_price":"2495.90"}'::jsonb);
   perform t.ok('owner can read trade costs', (select purchase_price from public.trade_costs where trade_id = tr) = 2495.90);
 
-  -- expenses are owner only
+  -- expenses: staff and owner
   perform t.as_user(staff_id);
-  perform t.denied('staff cannot add expenses',
-    $q$select public.save_expense('{"expense_date":"2026-09-06","category":"Travel","description":"Flight","amount":"379.83"}'::jsonb)$q$, 'only an owner');
-  perform t.ok('staff cannot read expenses', (select count(*) from public.expenses) = 0);
+  perform public.save_expense('{"expense_date":"2026-09-06","category":"Travel","description":"Flight","amount":"379.83"}'::jsonb);
+  perform t.ok('staff can add and read expenses', (select count(*) from public.expenses) = 1);
   perform t.as_user(owner_id);
   ex := public.save_expense('{"expense_date":"2026-09-06","category":"Travel","description":"MIAMI FLIGHT","amount":"379.83","seller":"MIAMI"}'::jsonb);
   perform t.ok('owner can add and read expenses', (select amount from public.expenses where id = ex) = 379.83);
   perform t.denied('negative expense rejected',
     $q$select public.save_expense('{"expense_date":"2026-09-06","category":"Travel","description":"x","amount":"-1"}'::jsonb)$q$, 'check constraint');
 
-  -- sellers see nothing
+  -- sellers: see everything staff see (except Rates), edit only the SALE part of an order
+  perform t.as_user(staff_id);
+  o4 := public.save_order('{"style_no":"SELLER-1","jewelry_type":"Ring"}'::jsonb);
   perform t.as_user(seller_id);
-  perform t.ok('seller cannot see orders', (select count(*) from public.order_overview) = 0 and (select count(*) from public.orders) = 0);
-  perform t.ok('seller cannot see trades', (select count(*) from public.trades) = 0);
-  perform t.ok('seller cannot see buyers, memos or payments',
-    (select count(*) from public.buyers) + (select count(*) from public.memos) + (select count(*) from public.payments) + (select count(*) from public.memo_summary) = 0);
-  perform t.denied('seller cannot create orders', $q$select public.save_order('{"style_no":"S"}'::jsonb)$q$, 'permission');
-  perform t.denied('seller cannot record payments',
-    format($q$select public.record_payment(%L, 1, '2026-10-02')$q$, memo), 'permission');
+  perform t.ok('seller can see orders and trades', (select count(*) from public.order_overview) > 0 and (select count(*) from public.trades) > 0);
+  perform t.ok('seller can see buyers, memos and payments',
+    (select count(*) from public.buyers) > 0 and (select count(*) from public.memos) > 0 and (select count(*) from public.payments) > 0 and (select count(*) from public.memo_summary) > 0);
+  perform t.ok('seller can see costs and expenses', (select count(*) from public.order_costs) > 0 and (select count(*) from public.trade_costs) > 0 and (select count(*) from public.expenses) > 0);
+  perform t.ok('seller cannot read the rates', (select count(*) from public.business_settings) = 0);
+  perform t.denied('seller cannot create or edit orders', $q$select public.save_order('{"style_no":"S"}'::jsonb)$q$, 'permission');
+  perform t.denied('seller cannot set costs', format($q$select public.save_order(%L::jsonb, '{"diam_amount":"5"}'::jsonb)$q$, format('{"id":"%s","style_no":"SELLER-1"}', o4)), 'permission');
+  perform t.denied('seller cannot edit trades', $q$select public.save_trade('{"item":"S"}'::jsonb)$q$, 'permission');
+  perform t.denied('seller cannot add expenses', $q$select public.save_expense('{"expense_date":"2026-09-06","category":"Travel","description":"x","amount":"1"}'::jsonb)$q$, 'permission');
+  perform t.denied('seller cannot record payments', format($q$select public.record_payment(%L, 1, '2026-10-02')$q$, memo), 'permission');
+  perform t.denied('seller cannot cancel payments', format($q$select public.void_payment(%L, 'mistake')$q$, pay2), 'permission');
+  perform t.denied('seller cannot delete records', format($q$select public.delete_record('order', %L)$q$, o4), 'permission');
+  perform t.denied('seller cannot write orders directly', $q$update public.orders set style_no = 'X'$q$, 'permission denied');
+  perform t.denied('seller cannot take a sale off an order directly', $q$update public.orders set sale_price = null$q$, 'permission denied');
+  perform public.save_order_sale(format('{"id":"%s","style_no":"HACKED","jewelry_type":"Hacked","sold_to":"CALI JEWELERS","memo_no":"M7","sale_price":"300","date_sold":"2026-10-03"}', o4)::jsonb);
+  perform t.ok('seller can record the sale on an order', (select sale_price from public.orders where id = o4) = 300
+    and (select memo_no from public.memo_summary where memo_no = 'M7') = 'M7' and (select date_sold from public.orders where id = o4) = date '2026-10-03');
+  perform t.ok('the sale form changes nothing but the sale', (select style_no = 'SELLER-1' and jewelry_type = 'Ring' from public.orders where id = o4));
+  perform t.denied('a sale needs Sold To, Memo and Sale Price together',
+    format($q$select public.save_order_sale(%L::jsonb)$q$, format('{"id":"%s","sold_to":"CALI JEWELERS"}', o4)), 'together');
+  perform t.denied('the sale form cannot take a sale off (that is a return)',
+    format($q$select public.save_order_sale(%L::jsonb)$q$, format('{"id":"%s","sold_to":"","memo_no":"","sale_price":""}', o4)), 'together');
+  perform t.denied('the sale form cannot invent an order', $q$select public.save_order_sale('{"sold_to":"A","memo_no":"M8","sale_price":"1"}'::jsonb)$q$, 'Choose an order');
+  perform t.denied('a memo still cannot belong to two buyers', format($q$select public.save_order_sale(%L::jsonb)$q$, format('{"id":"%s","sold_to":"Someone Else","memo_no":"M7","sale_price":"10"}', o4)), 'different buyer');
   perform t.as_anon();
   perform t.denied('anonymous cannot read orders', $q$select * from public.orders$q$, 'permission denied');
   perform t.denied('anonymous cannot read memo summary', $q$select * from public.memo_summary$q$, 'permission denied');
   perform t.admin();
   perform t.ok('payment cancellation is in the audit log', (select count(*) from public.audit_logs where action = 'payment.voided') = 1);
+  perform t.as_user(staff_id);
+  pay3 := public.record_payment(memo, 100, '2026-10-06');
+  perform public.void_payment(pay3, 'Typed twice');
+  perform t.ok('staff can cancel a payment with a reason', (select voided_at is not null from public.payments where id = pay3));
+  perform t.admin();
   raise notice 'ALL LEDGER TESTS PASSED';
 end $$;
