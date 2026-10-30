@@ -9,7 +9,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 /** What each role may do. The database enforces the same rules, so hiding a button is never the only protection. */
 export const PERMISSIONS = {
-  // Owner: everything. Staff: everything except Team. Seller: sees what staff see (except Rates) and can only record the sale on an order.
+  // Owner: everything. Staff: everything except Team. Seller: sees what staff see (except Rates), records sales on orders, and adds and edits Trading.
   "team.manage": ["owner"],
   "settings.edit": ["owner", "staff"],   // the Rates tab
   "audit.view": ["owner"],
@@ -22,8 +22,9 @@ export const PERMISSIONS = {
   "orders.edit": ["owner", "staff"],
   "orders.sale": ["owner", "staff", "seller"],   // Sold To, Memo, Sale Price, Date Sold on an existing order
   "trades.view": ["owner", "staff", "seller"],
-  "trades.edit": ["owner", "staff"],
+  "trades.edit": ["owner", "staff", "seller"],
   "memos.view": ["owner", "staff", "seller"],
+  "memos.delete": ["owner", "staff", "seller"],   // permanently, only an empty memo, with the person's own password
   "payments.record": ["owner", "staff"],
   "payments.void": ["owner", "staff"],
   "records.delete": ["owner", "staff"],
@@ -33,6 +34,7 @@ export const PERMISSIONS = {
   "reports.profit": ["owner", "staff", "seller"],
   "returns.record": ["owner", "staff"],
   "returns.view": ["owner", "staff", "seller"],
+  "returns.delete": ["owner", "staff", "seller"],   // permanently, with the person's own password
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
