@@ -9,6 +9,7 @@ import { ReturnPiece } from "@/components/return-piece";
 import { OrderForm } from "../order-form";
 import { OrderSaleForm } from "@/components/order-sale-form";
 import { usd } from "@/lib/ledger";
+import { getMemoPreview } from "@/lib/memo-preview";
 import type { OrderValues } from "@/lib/validation";
 
 export const metadata: Metadata = { title: "Edit order" };
@@ -67,6 +68,7 @@ async function SaleOnlyPage({ id, role }: { id: string; role: Role }) {
     showCost ? supabase.from("order_costs").select("usd_cost").eq("order_id", id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   if (!o) notFound();
+  const initialMemo = o.memo_no ? await getMemoPreview(supabase, s(o.memo_no), id) : null;
   const facts: [string, string][] = [
     ["Style", s(o.style_no)], ["Customer", s(o.customer)], ["Type", s(o.jewelry_type)], ["Diamond shape", s(o.diamond_shape)],
     ["Order date", s(o.order_date)], ["Gross wt", s(o.gross_wt)], ["Net wt", s(o.net_wt)], ["Pg wt", s(o.pg_wt)],
@@ -78,7 +80,7 @@ async function SaleOnlyPage({ id, role }: { id: string; role: Role }) {
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md border border-gold-soft bg-white p-4 text-sm sm:grid-cols-4">
         {facts.map(([k, v]) => <div key={k} className="min-w-0"><dt className="text-ink-soft">{k}</dt><dd className="break-words font-medium">{v || "—"}</dd></div>)}
       </dl>
-      <OrderSaleForm id={id} alreadySold={o.sale_price !== null} buyers={(buyers ?? []).map((b) => b.name)}
+      <OrderSaleForm id={id} alreadySold={o.sale_price !== null} initialMemo={initialMemo && initialMemo.found ? initialMemo : null} buyers={(buyers ?? []).map((b) => b.name)}
         initial={{ sold_to: s(o.sold_to), memo_no: s(o.memo_no), sale_price: s(o.sale_price), date_sold: s(o.date_sold) }} />
     </div>
   );
