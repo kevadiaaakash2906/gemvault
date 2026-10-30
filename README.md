@@ -15,7 +15,7 @@ Vinere now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses
 | Memos, buyers and payments (part payments, cancelling with a reason) | |
 | Expenses and Rates, CSV export in your sheet's column order | End-to-end browser tests |
 | Roles enforced in the database as well as in the menus | |
-| 34 app tests and 200 database checks, including simultaneous payments | |
+| 51 app tests and 223 database checks, including simultaneous payments | |
 
 ## Roles
 
@@ -23,7 +23,7 @@ Vinere now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses
 | --- | --- |
 | Owner | Everything |
 | Staff | See and edit everything except Team |
-| Seller | See everything staff see except Rates. The only thing a seller can edit is the sale (Sold to, Memo, Sale price, Date sold) on an existing order, because staff enter the order details and cost |
+| Seller | See everything staff see except Rates. A seller can record the sale (Sold to, Memo, Sale price, Date sold) on an existing order, add and edit Trading, and delete empty memos and return records (with their own password). Order details and costs are entered by staff |
 
 ## Start here
 
