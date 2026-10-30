@@ -64,7 +64,7 @@ export default async function ReturnsPage({ searchParams }: { searchParams: Prom
           <tbody className="divide-y divide-gold-soft">
             {(rows ?? []).map((r) => (
               <tr key={r.id} className="align-top hover:bg-ivory">
-                <td className="px-3 py-2 whitespace-nowrap">{fmtDate(r.returned_on)}</td>
+                <td className="px-3 py-2 whitespace-nowrap"><Link href={`/dashboard/returns/${r.id}`} className="underline underline-offset-4">{fmtDate(r.returned_on)}</Link></td>
                 <td className="px-3 py-2"><Link href={href(r)} className="font-medium text-forest underline underline-offset-4">{r.label}</Link><p className="text-xs text-ink-soft">{r.kind === "order" ? "Order" : "Trade"} #{r.sr_no}</p></td>
                 <td className="px-3 py-2">{r.buyer}</td><td className="px-3 py-2">{r.memo_no}</td>
                 <td className="px-3 py-2 text-right">{usd.format(num(r.sale_price))}</td>
@@ -82,7 +82,7 @@ export default async function ReturnsPage({ searchParams }: { searchParams: Prom
           <Tile key={r.id} title={`${r.label} · ${r.buyer}`} subtitle={`${r.kind === "order" ? "Order" : "Trade"} #${r.sr_no} · returned ${fmtDate(r.returned_on)}`}
             right={<p className="font-medium">{usd.format(num(r.sale_price))}</p>}
             facts={[["Buyer", r.buyer], ["Memo", r.memo_no], ["Sold on", fmtDate(r.date_sold)], ["Returned", fmtDate(r.returned_on)], ["Sale price", usd.format(num(r.sale_price))], ["Refund", num(r.refund) > 0 ? usd.format(num(r.refund)) : "—"], ["Reason", r.reason]]}
-            href={href(r)} hrefLabel="Open piece" />
+            href={`/dashboard/returns/${r.id}`} hrefLabel="Details" />
         ))}
         {(rows ?? []).length === 0 && !error && <TileEmpty>{q ? "No returns match." : "No returns yet."}</TileEmpty>}
       </ul>
