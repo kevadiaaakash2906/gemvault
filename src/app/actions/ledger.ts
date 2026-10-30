@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { confirmDeleteSchema, deleteSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, returnSchema, saleSchema, tradeSchema, voidSchema } from "@/lib/validation";
+import { confirmDeleteSchema, deleteSchema, memoLookupSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, returnSchema, saleSchema, tradeSchema, voidSchema } from "@/lib/validation";
 import type { ActionResult } from "@/app/actions/auth";
+import { getMemoPreview, type MemoPreview } from "@/lib/memo-preview";
 
 export type SaveResult = ActionResult & { id?: string };
 
@@ -41,6 +42,14 @@ export async function saveOrderSale(values: unknown): Promise<SaveResult> {
   if (error) return { error: friendly(error) };
   revalidatePath("/dashboard", "layout");
   return { id: data as string, success: "Sale saved." };
+}
+
+/** Looks up a memo number for the sale form: who it belongs to, its pieces and its money. */
+export async function lookupMemo(values: unknown): Promise<MemoPreview | { error: string }> {
+  await requirePermission("orders.sale");
+  const p = memoLookupSchema.safeParse(values);
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Check the memo number." };
+  return getMemoPreview(await createClient(), p.data.memo_no, p.data.order_id);
 }
 
 export async function saveTrade(values: unknown): Promise<SaveResult> {
