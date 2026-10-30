@@ -6,6 +6,7 @@ import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { fmtDate, num, usd } from "@/lib/ledger";
 import { AddPayment, VoidPayment } from "./payment-panel";
+import { DeletePermanently } from "@/components/delete-permanently";
 
 export const metadata: Metadata = { title: "Memo" };
 
@@ -65,6 +66,11 @@ export default async function MemoPage({ params }: { params: Promise<{ id: strin
         )}
         {can(session.role, "payments.record") && <AddPayment memoId={id} balance={balance} />}
       </section>
-    </div>
+
+      {can(session.role, "memos.delete") && (
+        <DeletePermanently kind="memo" id={id} title="Delete this memo permanently" redirectTo="/dashboard/memos"
+          blocked={num(m.pieces) > 0 ? `This memo still has ${num(m.pieces)} ${num(m.pieces) === 1 ? "piece" : "pieces"} on it. Return ${num(m.pieces) === 1 ? "it" : "them"} first (open the piece, then Return this piece), and then the empty memo can be deleted.` : undefined}
+          lines={["The memo, its payments and its return records are removed for good.", "Only an empty memo can be deleted, so no sale is lost.", "A full copy is kept in the audit log."]} />
+      )}    </div>
   );
 }
