@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageTone, daysWaiting, fmtPct, marginPct, monthLabel, refundDue, signedUsd, waitingLabel } from "@/lib/reports";
+import { ageTone, daysWaiting, fmtPct, marginPct, monthLabel, memoAfterSale, refundDue, signedUsd, waitingLabel } from "@/lib/reports";
 
 const today = new Date("2026-10-27T09:00:00Z");
 
@@ -68,5 +68,17 @@ describe("refundDue", () => {
     expect(refundDue(600, 600, 600)).toBe(600);        // fully paid, only piece returned
     expect(refundDue(0, 800, 800)).toBe(0);            // nothing paid yet
     expect(refundDue(300, 1500, 500)).toBe(0);         // paid less than the new bill
+  });
+});
+
+describe("memoAfterSale", () => {
+  it("adds a new piece to the memo bill", () => {
+    expect(memoAfterSale(3000, 1000, 0, 500)).toEqual({ bill: 3500, balance: 2500 });
+  });
+  it("does not count a piece twice when its price is being changed", () => {
+    expect(memoAfterSale(3500, 1000, 500, 700)).toEqual({ bill: 3700, balance: 2700 });
+  });
+  it("handles cents without drifting", () => {
+    expect(memoAfterSale(0.1, 0, 0, 0.2)).toEqual({ bill: 0.3, balance: 0.3 });
   });
 });
