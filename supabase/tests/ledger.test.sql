@@ -121,7 +121,12 @@ begin
   perform t.ok('seller cannot read the rates', (select count(*) from public.business_settings) = 0);
   perform t.denied('seller cannot create or edit orders', $q$select public.save_order('{"style_no":"S"}'::jsonb)$q$, 'permission');
   perform t.denied('seller cannot set costs', format($q$select public.save_order(%L::jsonb, '{"diam_amount":"5"}'::jsonb)$q$, format('{"id":"%s","style_no":"SELLER-1"}', o4)), 'permission');
-  perform t.denied('seller cannot edit trades', $q$select public.save_trade('{"item":"S"}'::jsonb)$q$, 'permission');
+  perform public.save_trade('{"item":"SELLER-TRADE","sold_to":"CALI JEWELERS","memo_no":"M9","sale_price":"500","date_sold":"2026-10-04"}'::jsonb, '{"vendor":"V1","purchase_price":"400"}'::jsonb);
+  perform t.ok('seller can add a trade with its sale and purchase price', (select sale_price = 500 from public.trades where item = 'SELLER-TRADE')
+    and (select purchase_price = 400 from public.trade_costs tc join public.trades t2 on t2.id = tc.trade_id where t2.item = 'SELLER-TRADE'));
+  perform public.save_trade(format('{"id":"%s","item":"SELLER-TRADE","sold_to":"CALI JEWELERS","memo_no":"M9","sale_price":"550","date_sold":"2026-10-04"}', (select id from public.trades where item = 'SELLER-TRADE'))::jsonb);
+  perform t.ok('seller can edit a trade', (select sale_price = 550 from public.trades where item = 'SELLER-TRADE'));
+  perform t.denied('seller cannot take a sale off a trade by editing', format($q$select public.save_trade(%L::jsonb)$q$, format('{"id":"%s","item":"SELLER-TRADE"}', (select id from public.trades where item = 'SELLER-TRADE'))), 'Return this piece');
   perform t.denied('seller cannot add expenses', $q$select public.save_expense('{"expense_date":"2026-09-06","category":"Travel","description":"x","amount":"1"}'::jsonb)$q$, 'permission');
   perform t.denied('seller cannot record payments', format($q$select public.record_payment(%L, 1, '2026-10-02')$q$, memo), 'permission');
   perform t.denied('seller cannot cancel payments', format($q$select public.void_payment(%L, 'mistake')$q$, pay2), 'permission');
