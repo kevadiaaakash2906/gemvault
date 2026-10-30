@@ -45,7 +45,7 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
         {...props}
-        className="block min-h-11 w-full rounded-md border border-gold-soft bg-white px-3 text-base placeholder:text-ink-soft/60 aria-[invalid=true]:border-danger"
+        className="block min-h-11 w-full rounded-md border border-gold-soft bg-white px-3 text-base placeholder:text-ink-soft/60 aria-[invalid=true]:border-danger read-only:bg-parchment read-only:text-ink-soft"
       />
       {hint && !error && (
         <p id={`${id}-hint`} className="text-sm text-ink-soft">
