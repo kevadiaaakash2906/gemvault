@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { deleteSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, returnSchema, saleSchema, tradeSchema, voidSchema } from "@/lib/validation";
+import { confirmDeleteSchema, deleteSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, returnSchema, saleSchema, tradeSchema, voidSchema } from "@/lib/validation";
 import type { ActionResult } from "@/app/actions/auth";
 
 export type SaveResult = ActionResult & { id?: string };
@@ -103,6 +103,30 @@ export async function returnPiece(values: unknown): Promise<ReturnResult> {
   revalidatePath("/dashboard", "layout");
   const r = data as { id: string; refund: number };
   return { success: "Return recorded.", id: r.id, refund: Number(r.refund) };
+}
+
+/** Permanently delete an empty memo. The database checks the person's own password and that no pieces are on it. */
+export async function deleteMemo(values: unknown): Promise<ActionResult> {
+  await requirePermission("memos.delete");
+  const p = confirmDeleteSchema.safeParse(values);
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Check the form and try again." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_memo", { p_memo: p.data.id, p_password: p.data.password });
+  if (error) return { error: friendly(error) };
+  revalidatePath("/dashboard", "layout");
+  return { success: "Memo deleted." };
+}
+
+/** Permanently delete one return record (the piece stays in stock). Needs the person's own password. */
+export async function deleteReturn(values: unknown): Promise<ActionResult> {
+  await requirePermission("returns.delete");
+  const p = confirmDeleteSchema.safeParse(values);
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Check the form and try again." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_return", { p_return: p.data.id, p_password: p.data.password });
+  if (error) return { error: friendly(error) };
+  revalidatePath("/dashboard", "layout");
+  return { success: "Return deleted." };
 }
 
 export async function deleteRecord(values: unknown): Promise<ActionResult> {
