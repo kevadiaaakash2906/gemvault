@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { csvCell, toCsv } from "@/lib/csv";
 import { buildQuery, cleanSearch, computeCosts, parsePage, pickSort } from "@/lib/ledger";
-import { expenseSchema, orderSchema, paymentSchema, ratesSchema, saleSchema, tradeSchema } from "@/lib/validation";
+import { confirmDeleteSchema, expenseSchema, orderSchema, paymentSchema, ratesSchema, saleSchema, tradeSchema } from "@/lib/validation";
 
 const order = {
   customer: "HET", style_no: "BR-100", jewelry_type: "Bracelet", diamond_shape: "Round", order_date: "2026-06-10", gross_wt: "7.026", dia_qty: "60",
@@ -78,6 +78,15 @@ describe("sale form (what a seller can fill in)", () => {
     expect(saleSchema.safeParse({ ...sale, sale_price: "12.345" }).success).toBe(false);
     expect(saleSchema.safeParse({ ...sale, date_sold: "yesterday" }).success).toBe(false);
     expect(saleSchema.safeParse({ ...sale, id: "not-an-id" }).success).toBe(false);
+  });
+});
+
+describe("delete confirmation", () => {
+  it("needs the record id and a password", () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    expect(confirmDeleteSchema.safeParse({ id, password: "secret" }).success).toBe(true);
+    expect(confirmDeleteSchema.safeParse({ id, password: "" }).success).toBe(false);
+    expect(confirmDeleteSchema.safeParse({ id: "nope", password: "secret" }).success).toBe(false);
   });
 });
 
