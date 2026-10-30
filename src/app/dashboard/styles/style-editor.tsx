@@ -1,14 +1,15 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { deleteStyle, saveStyle, uploadStylePhoto } from "@/app/actions/styles";
 import type { ActionResult } from "@/app/actions/auth";
 import { styleSchema, type StyleValues } from "@/lib/validation";
 import { shrinkImage } from "@/lib/shrink";
 import { Button, Field, Notice } from "@/components/ui";
+import { DiamondShapePicker } from "@/components/diamond-shape-picker";
 
 export function StyleEditor({
   initial, isNew, photoUrl, orderCount, canDelete,
@@ -16,7 +17,9 @@ export function StyleEditor({
   const router = useRouter();
   const [serverError, setServerError] = useState<string>();
   const [pending, start] = useTransition();
-  const { register, handleSubmit, formState: { errors } } = useForm<StyleValues>({ resolver: zodResolver(styleSchema), defaultValues: initial });
+  const { register, control, setValue, handleSubmit, formState: { errors } } = useForm<StyleValues>({ resolver: zodResolver(styleSchema), defaultValues: initial });
+  const shape = useWatch({ control, name: "diamond_shape" }) ?? "";
+  useEffect(() => { register("diamond_shape"); }, [register]);   // the picker sets this value itself
 
   const onSubmit = (values: StyleValues) =>
     start(async () => {
@@ -35,7 +38,8 @@ export function StyleEditor({
         <Field id="style_no" label="Style No." readOnly={!isNew} hint={isNew ? "The number cannot be changed later." : "The style number cannot be changed."} error={errors.style_no?.message} {...register("style_no")} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field id="jewelry_type" label="Jewelry Type" error={errors.jewelry_type?.message} {...register("jewelry_type")} />
-          <Field id="diamond_shape" label="Diamond Shape" error={errors.diamond_shape?.message} {...register("diamond_shape")} />
+          <DiamondShapePicker id="diamond_shape" value={shape} error={errors.diamond_shape?.message}
+            onChange={(v) => setValue("diamond_shape", v, { shouldDirty: true })} />
         </div>
         <p className="text-sm text-ink-soft">New orders with this style number fill these in for you. Old orders keep what they were saved with.</p>
         <div className="flex gap-3">
