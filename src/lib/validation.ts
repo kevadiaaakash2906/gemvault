@@ -125,6 +125,10 @@ export const saleSchema = z.object({
   date_sold: date,
 });
 export type SaleValues = z.infer<typeof saleSchema>;
+export const memoLookupSchema = z.object({
+  memo_no: z.string().trim().regex(/^[A-Za-z0-9._-]{1,20}$/, "Memo: letters, numbers and . _ - only (max 20)."),
+  order_id: z.uuid().optional(),
+});
 export const confirmDeleteSchema = z.object({
   id: z.uuid(),
   password: z.string().min(1, "Enter your password to confirm.").max(200),

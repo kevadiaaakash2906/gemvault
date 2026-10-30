@@ -53,3 +53,9 @@ export function signedUsd(n: number): string {
 export function refundDue(memoPaid: number, memoBill: number, salePrice: number): number {
   return Math.max(0, Math.round((memoPaid - (memoBill - salePrice)) * 100) / 100);
 }
+
+/** What a memo's bill and balance become once this piece is saved at `newPrice` (it may already be on the memo at `currentPrice`). */
+export function memoAfterSale(bill: number, paid: number, currentPrice: number, newPrice: number): { bill: number; balance: number } {
+  const next = Math.round((bill - currentPrice + newPrice) * 100) / 100;
+  return { bill: next, balance: Math.round((next - paid) * 100) / 100 };
+}
