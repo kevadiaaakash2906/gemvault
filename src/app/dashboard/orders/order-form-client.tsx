@@ -10,6 +10,7 @@ import { lookupStyle, type StyleLookup } from "@/app/actions/styles";
 import { orderSchema, type OrderValues } from "@/lib/validation";
 import { computeCosts, inr, num, usd } from "@/lib/ledger";
 import { Button, Field, Notice } from "@/components/ui";
+import { DiamondShapePicker } from "@/components/diamond-shape-picker";
 
 export function OrderForm({
   initial, isOwner, usdRate, buyers, types,
@@ -19,6 +20,7 @@ export function OrderForm({
   const [pending, start] = useTransition();
   const { register, control, handleSubmit, getValues, setValue, formState: { errors } } = useForm<OrderValues>({ resolver: zodResolver(orderSchema), defaultValues: initial });
   const w = useWatch({ control });
+  useEffect(() => { register("diamond_shape"); }, [register]);   // the picker sets this value itself
 
   // Style catalogue: typing a known style number fills in the type and shape and shows its photo.
   const [style, setStyle] = useState<StyleLookup | null>(null);
@@ -67,7 +69,8 @@ export function OrderForm({
           <Field id="customer" label="CUSTOMER" error={errors.customer?.message} {...register("customer")} />
           <Field id="order_date" label="Date" type="date" error={errors.order_date?.message} {...register("order_date")} />
           <Field id="jewelry_type" label="Jewelry Type" list="types" error={errors.jewelry_type?.message} {...register("jewelry_type")} />
-          <Field id="diamond_shape" label="Diamond Shape" error={errors.diamond_shape?.message} {...register("diamond_shape")} />
+          <DiamondShapePicker id="diamond_shape" value={w.diamond_shape ?? ""} error={errors.diamond_shape?.message}
+            onChange={(v) => setValue("diamond_shape", v, { shouldDirty: true })} />
         </div>
         <datalist id="types">{types.map((t) => <option key={t} value={t} />)}</datalist>
         {style && (
