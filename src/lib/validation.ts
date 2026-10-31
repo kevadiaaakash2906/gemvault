@@ -53,6 +53,7 @@ const saleGroupMsg = { message: "To record a sale, fill in Sold To, Memo and Sal
 export const orderSchema = z
   .object({
     id: z.string().optional(),
+    sr_no: z.union([z.literal(""), z.string().trim().regex(/^[1-9]\d{0,5}$/, "Sr. No.: a whole number, for example 181.")]).optional(),
     customer: text(60, "Customer"),
     style_no: z.string().trim().min(1, "Enter the style number.").max(120),
     jewelry_type: text(40, "Jewelry type"),
