@@ -61,6 +61,15 @@ describe("other forms", () => {
   });
 });
 
+describe("Sr. No. on a new order", () => {
+  it("accepts a whole number, or nothing at all", () => {
+    for (const sr_no of ["58", "181", "999999", "", undefined]) expect(orderSchema.safeParse({ ...order, sr_no }).success, String(sr_no)).toBe(true);
+  });
+  it("rejects zero, negatives, decimals, letters and numbers that are too long", () => {
+    for (const sr_no of ["0", "-5", "5.5", "abc", "1000000", "05"]) expect(orderSchema.safeParse({ ...order, sr_no }).success, sr_no).toBe(false);
+  });
+});
+
 describe("sale form (what a seller can fill in)", () => {
   const sale = { id: "11111111-1111-4111-8111-111111111111", sold_to: "CALI JEWELERS", memo_no: "M7", sale_price: "1200.50", date_sold: "" };
   it("accepts a complete sale", () => {
