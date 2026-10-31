@@ -11,15 +11,17 @@ export default async function NewOrderPage() {
   const session = await requirePermission("orders.edit");
   const owner = can(session.role, "costs.view");
   const supabase = await createClient();
-  const [rates, { data: buyers }, { data: types }] = await Promise.all([
+  const [rates, { data: buyers }, { data: types }, { data: last }] = await Promise.all([
     owner ? getRates() : Promise.resolve(null),
     supabase.from("buyers").select("name").order("name").limit(500),
     supabase.from("orders").select("jewelry_type").not("jewelry_type", "is", null).limit(2000),
+    supabase.from("orders").select("sr_no").order("sr_no", { ascending: false }).limit(1),   // the last Sr. No., to suggest the next one
   ]);
+  const suggested = String(Number(last?.[0]?.sr_no ?? 0) + 1);
   return (
     <div className="space-y-6">
       <h1 className="font-display text-3xl text-forest">Add order</h1>
-      <OrderForm initial={emptyOrder(rates)} isOwner={owner} usdRate={rates?.usdRate ?? null}
+      <OrderForm initial={emptyOrder(rates, suggested)} isOwner={owner} usdRate={rates?.usdRate ?? null}
         buyers={(buyers ?? []).map((b) => b.name)} types={[...new Set((types ?? []).map((t) => t.jewelry_type as string))].sort()} />
     </div>
   );
