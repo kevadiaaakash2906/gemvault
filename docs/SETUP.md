@@ -111,7 +111,9 @@ Do these in this order.
    `supabase/migrations/20261027000004_reports.sql`, and click **Run**. Expect "Success. No rows returned". It only adds read-only views and changes none of your data.
    Then do the same with `supabase/migrations/20261027000005_kpi.sql` (the summary cards on Orders, Trading, Expenses and the Overview).
    Then `supabase/migrations/20261027000006_returns.sql` (returns). It adds the Returns list and the return function, and makes the memo totals subtract refunds.
-   Then `supabase/migrations/20261027000007_roles.sql` (the Owner / Staff / Seller rules). Run these in number order: 4, 5, 6, then 7.
+   Then `supabase/migrations/20261027000007_roles.sql` (the Owner / Staff / Seller rules). Run these in number order: 4, 5, 6, 7, 8, then 9.
+   Then `supabase/migrations/20261027000009_order_sr_no.sql` (choose the Sr. No. when adding an order).
+   Then `supabase/migrations/20261027000008_trading_deletes.sql` (sellers can edit Trading; delete memo and delete return).
 2. **Upload the changed files** to GitHub (same way as before) and wait for Vercel to show **Ready**.
 3. **Who owes me** and **Profit** appear in the menu for everyone who can see the ledger (owner, staff and seller).
 4. If Profit says some sold pieces have "no cost on file", open **Show them**, then open each piece and enter its cost. Those pieces are left out of profit until then.
@@ -130,7 +132,33 @@ Do these in this order.
 | --- | --- |
 | **Owner** | Everything |
 | **Staff** | See and edit everything except **Team** (this includes costs, expenses, Rates, profit, cancelling payments and deleting) |
-| **Seller** | See everything staff see except **Rates** and **Team**. A seller can only record or change the sale on an existing order: Sold to, Memo, Sale price and Date sold. A seller opens an order from the Orders tab and fills in the Sale box |
+| **Seller** | See everything staff see except **Rates** and **Team**. A seller can record or change the sale on an existing order (Sold to, Memo, Sale price, Date sold), add and edit **Trading**, and permanently delete an empty memo or a return record with their own password. A seller opens an order from the Orders tab and fills in the Sale box |
 
 To give someone a role, see "Adding people" above. If you later want sellers not to see costs, profit or expenses, tell me and I will change it (it is one database function and one line in the app).
+
+## Deleting a memo or a return permanently
+
+1. **Memo:** open the memo and scroll to the bottom, **Delete this memo permanently**. Only an **empty** memo can be deleted. If it still has pieces, return them first (open the piece, **Return this piece**). The memo, its payments and its return records go, and a full copy is kept in the audit log.
+2. **Return:** open **Returns**, click the return, and use **Delete this return permanently** at the bottom. Only the record goes; the piece stays in stock. A return that refunded money can only be deleted while the memo would not be left overpaid. Otherwise delete the whole (empty) memo.
+3. Both need **your own login password**.
+
+## Sr. No. on a new order
+
+**Add order** now starts with a **Sr. No.** box that already shows the suggested number (the last one + 1). Leave it, type another number that is free (for example one that was skipped), or clear the box to take the next number automatically. A number that is already used is refused with a message saying which order has it. An existing order's Sr. No. cannot be changed.
+
+## Updating the data from your sheet (`vinere-import.sql`)
+
+1. In Supabase open **SQL Editor, New query**, paste the whole file, and click **Run**.
+2. It replaces the orders, trading items, expenses, buyers, memos and payments with what is in the sheet, then shows a row of totals at the end. Compare them with the sheet.
+3. It **stops without changing anything** if someone has entered or changed anything inside the app (an order, a sale, a payment, an expense, a return or a deleted memo), because those would be lost. If that happens, tell us what was entered.
+4. Never upload this file to GitHub: it contains your business data.
+
+## Download Excel
+
+1. On **Orders**, **Trading** or **Expenses**, click **Download Excel**. You get one file, `VINERELEDGER-<date>.xlsx`, with three tabs: Orders, Trading and Expenses. It opens on the tab you clicked from.
+2. The layout is the same as your VINERELEDGER workbook: two empty rows on top, headers on row 3, the same columns in the same order, the same date formats, the dark Orders header with the first rows frozen, and the profit formula on Trading.
+3. Payments are kept per memo in the app, so the file shows them like your sheet: the **Payment Log** is repeated on every row of the memo, while **Amount Paid** and **Balance Due** appear once per memo (on its first row), so the column totals add up correctly.
+4. Trading has one extra column at the end, **memo**, because trades now belong to memos. Expenses ends with a **total** row that really adds up (the old one showed an error).
+5. People only get the tabs and columns they are allowed to see.
+6. **Adding this feature needs the Excel library.** Upload `package.json` too; Vercel installs it automatically when it builds.
 
