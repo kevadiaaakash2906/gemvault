@@ -13,9 +13,9 @@ Vinere now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses
 | Orders with every column of your sheet, Pg Wt and cost worked out the same way as your sheet |  |
 | Trading with vendor, purchase price and profit/loss | Import screen (import is a one-off SQL file) |
 | Memos, buyers and payments (part payments, cancelling with a reason) | |
-| Expenses and Rates, CSV export in your sheet's column order | End-to-end browser tests |
+| Expenses and Rates, Excel download laid out like your VINERELEDGER workbook | End-to-end browser tests |
 | Roles enforced in the database as well as in the menus | |
-| 53 app tests and 239 database checks, including simultaneous payments | |
+| 64 app tests and 239 database checks, including simultaneous payments | |
 
 ## Roles
 
