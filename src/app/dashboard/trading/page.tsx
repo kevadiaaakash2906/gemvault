@@ -62,7 +62,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div><h1 className="font-display text-3xl text-forest">Trading</h1><p className="text-ink-soft">{total} {total === 1 ? "item" : "items"}</p></div>
         <div className="flex gap-2">
-          <a href="/dashboard/export?sheet=trading" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-gold-soft bg-white px-4 text-sm font-semibold hover:bg-parchment"><Download className="size-4" aria-hidden /> Export CSV</a>
+          <a href="/dashboard/export?sheet=trading" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-gold-soft bg-white px-4 text-sm font-semibold hover:bg-parchment"><Download className="size-4" aria-hidden /> Download Excel</a>
           {can(session.role, "trades.edit") && <Link href="/dashboard/trading/new" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-forest px-4 text-sm font-semibold text-ivory hover:bg-forest-deep"><Plus className="size-4" aria-hidden /> Add item</Link>}
         </div>
       </div>
