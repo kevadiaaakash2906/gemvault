@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ["exceljs"],   // the Excel library runs on the server as it is, not bundled
   experimental: { serverActions: { bodySizeLimit: "4mb" } },
   async headers() {
     return [
