@@ -8,6 +8,9 @@ import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, inr, num, parsePage, pickS
 import { Tile, TileEmpty, type Fact } from "@/components/tiles";
 import { KpiStrip, type Kpi } from "@/components/kpi";
 import { signedUsd } from "@/lib/reports";
+import { ColumnPicker } from "@/components/column-picker";
+import { COLUMNS } from "@/lib/columns";
+import { getHiddenColumns } from "@/lib/column-prefs";
 
 export const metadata: Metadata = { title: "Orders" };
 const SORTS = ["sr_no", "order_date", "style_no", "sale_price", "date_sold"] as const;
@@ -26,6 +29,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const supabase = await createClient();
   const kpiRequest = Promise.resolve(supabase.from("orders_kpi").select("*").maybeSingle());   // starts now, so it runs alongside the list
 
+  const hiddenRequest = getHiddenColumns(supabase, "orders");   // the person's saved column choices, fetched alongside the list
   let query = supabase.from("order_overview").select("*", { count: "exact" });
   if (status) query = query.eq("payment_status", status);
   if (sp.type) query = query.eq("jewelry_type", sp.type);
@@ -60,13 +64,14 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     { label: "Outstanding balance", value: usd.format(num(k.outstanding)), sub: "across all orders", tone: "warn" },
     { label: "Stock on hand", value: String(num(k.stock_items)), sub: "pieces not sold yet" },
   ];
+  const hidden = await hiddenRequest;
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const base = { q: q || undefined, status, type: sp.type, sort: sp.sort, dir: sp.dir };
   const th = (k: string, label: string, right?: boolean) => {
     const nextDir = sort === k && dir === "asc" ? "desc" : "asc";
     return (
-      <th key={k} scope="col" aria-sort={sort === k ? (dir === "asc" ? "ascending" : "descending") : "none"} className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>
+      <th key={k} data-col={k} scope="col" aria-sort={sort === k ? (dir === "asc" ? "ascending" : "descending") : "none"} className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>
         <Link href={`/dashboard/orders${buildQuery({ ...base, sort: k, dir: nextDir })}`} className="inline-flex items-center gap-1 hover:text-gold-deep">
           {label}
           {sort === k && (dir === "asc" ? <ArrowUp className="size-3" aria-hidden /> : <ArrowDown className="size-3" aria-hidden />)}
@@ -74,7 +79,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       </th>
     );
   };
-  const plain = (label: string, right?: boolean) => <th key={label} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{label}</th>;
+  const plain = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{label}</th>;
   const badge = (s: string) => {
     const c = s === "Paid" ? "bg-emerald-100 text-emerald-900" : s === "Partial" ? "bg-amber-100 text-amber-900" : s === "Unpaid" ? "bg-red-100 text-red-900" : "bg-parchment text-ink-soft";
     return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${c}`}>{s}</span>;
@@ -87,7 +92,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           <h1 className="font-display text-3xl text-forest">Orders</h1>
           <p className="text-ink-soft">{total} {total === 1 ? "piece" : "pieces"}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <div className="hidden lg:block"><ColumnPicker table="orders" columns={COLUMNS.orders.filter((c) => owner || !c.ownerOnly)} initialHidden={hidden} /></div>
           <a href="/dashboard/export?sheet=orders" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-gold-soft bg-white px-4 text-sm font-semibold hover:bg-parchment"><Download className="size-4" aria-hidden /> Download Excel</a>
           {can(session.role, "orders.edit") && (
             <Link href="/dashboard/orders/new" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-forest px-4 text-sm font-semibold text-ivory hover:bg-forest-deep"><Plus className="size-4" aria-hidden /> Add order</Link>
@@ -112,14 +118,14 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load orders. Please refresh the page.</p>}
 
       <div className="hidden overflow-x-auto rounded-md border border-gold-soft bg-white lg:block">
-        <table className="w-full text-xs">
+        <table data-table="orders" className="w-full text-xs">
           <caption className="sr-only">Orders</caption>
           <thead className="bg-parchment">
             <tr>
-              {plain("Photo")}{th("sr_no", "Sr. No.")}{plain("Customer")}{th("style_no", "Style No.")}{plain("Jewelry Type")}{plain("Diamond Shape")}{th("order_date", "Date")}
-              {plain("Gross Wt", true)}{plain("Dia Qty", true)}{plain("IN CT", true)}{plain("Colour Stone", true)}{plain("Net Wt", true)}{plain("Multiplier", true)}{plain("Pg Wt", true)}
-              {owner && <>{plain("Gold Amount", true)}{plain("Diam Amount", true)}{plain("L Charges", true)}{plain("Labor Amount", true)}{plain("Sub Total", true)}{plain("$", true)}</>}
-              {plain("Sold To")}{th("sale_price", "Sale Price", true)}{th("date_sold", "Date Sold")}{plain("Memo")}{plain("Memo Paid", true)}{plain("Memo Balance", true)}{plain("Payment Status")}
+              {plain("photo", "Photo")}{th("sr_no", "Sr. No.")}{plain("customer", "Customer")}{th("style_no", "Style No.")}{plain("jewelry_type", "Jewelry Type")}{plain("diamond_shape", "Diamond Shape")}{th("order_date", "Date")}
+              {plain("gross_wt", "Gross Wt", true)}{plain("dia_qty", "Dia Qty", true)}{plain("in_ct", "IN CT", true)}{plain("colour_stone", "Colour Stone", true)}{plain("net_wt", "Net Wt", true)}{plain("multiplier", "Multiplier", true)}{plain("pg_wt", "Pg Wt", true)}
+              {owner && <>{plain("gold_amount", "Gold Amount", true)}{plain("diam_amount", "Diam Amount", true)}{plain("l_charges", "L Charges", true)}{plain("labor_amount", "Labor Amount", true)}{plain("sub_total", "Sub Total", true)}{plain("usd_cost", "$", true)}</>}
+              {plain("sold_to", "Sold To")}{th("sale_price", "Sale Price", true)}{th("date_sold", "Date Sold")}{plain("memo", "Memo")}{plain("memo_paid", "Memo Paid", true)}{plain("memo_balance", "Memo Balance", true)}{plain("payment_status", "Payment Status")}
             </tr>
           </thead>
           <tbody className="divide-y divide-gold-soft">
@@ -127,40 +133,40 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               const c = costs.get(r.id);
               return (
                 <tr key={r.id} className="hover:bg-ivory">
-                  <td className="px-2 py-2">
+                  <td data-col="photo" className="px-2 py-2">
                     {r.style_thumb_path && thumbUrls.get(r.style_thumb_path)
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={thumbUrls.get(r.style_thumb_path)} alt="" className="size-10 rounded object-cover" />
                       : <div className="size-10 rounded bg-parchment" aria-hidden />}
                   </td>
-                  <td className="px-2 py-2"><Link href={`/dashboard/orders/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link></td>
-                  <td className="px-2 py-2">{r.customer ?? "—"}</td>
-                  <td className="px-2 py-2 font-mono">{r.style_no}</td>
-                  <td className="px-2 py-2">{r.jewelry_type ?? "—"}</td>
-                  <td className="px-2 py-2">{r.diamond_shape ?? "—"}</td>
-                  <td className="px-2 py-2 whitespace-nowrap">{fmtDate(r.order_date)}</td>
-                  <td className="px-2 py-2 text-right">{r.gross_wt ?? "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.dia_qty ?? "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.in_ct ?? "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.colour_stone ?? "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.net_wt ?? "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.multiplier ?? "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.pg_wt ?? "—"}</td>
+                  <td data-col="sr_no" className="px-2 py-2"><Link href={`/dashboard/orders/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link></td>
+                  <td data-col="customer" className="px-2 py-2">{r.customer ?? "—"}</td>
+                  <td data-col="style_no" className="px-2 py-2 font-mono">{r.style_no}</td>
+                  <td data-col="jewelry_type" className="px-2 py-2">{r.jewelry_type ?? "—"}</td>
+                  <td data-col="diamond_shape" className="px-2 py-2">{r.diamond_shape ?? "—"}</td>
+                  <td data-col="order_date" className="px-2 py-2 whitespace-nowrap">{fmtDate(r.order_date)}</td>
+                  <td data-col="gross_wt" className="px-2 py-2 text-right">{r.gross_wt ?? "—"}</td>
+                  <td data-col="dia_qty" className="px-2 py-2 text-right">{r.dia_qty ?? "—"}</td>
+                  <td data-col="in_ct" className="px-2 py-2 text-right">{r.in_ct ?? "—"}</td>
+                  <td data-col="colour_stone" className="px-2 py-2 text-right">{r.colour_stone ?? "—"}</td>
+                  <td data-col="net_wt" className="px-2 py-2 text-right">{r.net_wt ?? "—"}</td>
+                  <td data-col="multiplier" className="px-2 py-2 text-right">{r.multiplier ?? "—"}</td>
+                  <td data-col="pg_wt" className="px-2 py-2 text-right">{r.pg_wt ?? "—"}</td>
                   {owner && (<>
-                    <td className="px-2 py-2 text-right">{c ? inr.format(num(c.gold_amount)) : "—"}</td>
-                    <td className="px-2 py-2 text-right">{c ? inr.format(num(c.diam_amount)) : "—"}</td>
-                    <td className="px-2 py-2 text-right">{c ? num(c.l_charges) : "—"}</td>
-                    <td className="px-2 py-2 text-right">{c ? inr.format(num(c.labor_amount)) : "—"}</td>
-                    <td className="px-2 py-2 text-right">{c ? inr.format(num(c.sub_total)) : "—"}</td>
-                    <td className="px-2 py-2 text-right">{c ? usd.format(num(c.usd_cost)) : "—"}</td>
+                    <td data-col="gold_amount" className="px-2 py-2 text-right">{c ? inr.format(num(c.gold_amount)) : "—"}</td>
+                    <td data-col="diam_amount" className="px-2 py-2 text-right">{c ? inr.format(num(c.diam_amount)) : "—"}</td>
+                    <td data-col="l_charges" className="px-2 py-2 text-right">{c ? num(c.l_charges) : "—"}</td>
+                    <td data-col="labor_amount" className="px-2 py-2 text-right">{c ? inr.format(num(c.labor_amount)) : "—"}</td>
+                    <td data-col="sub_total" className="px-2 py-2 text-right">{c ? inr.format(num(c.sub_total)) : "—"}</td>
+                    <td data-col="usd_cost" className="px-2 py-2 text-right">{c ? usd.format(num(c.usd_cost)) : "—"}</td>
                   </>)}
-                  <td className="px-2 py-2">{r.sold_to ?? "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "—"}</td>
-                  <td className="px-2 py-2 whitespace-nowrap">{fmtDate(r.date_sold)}</td>
-                  <td className="px-2 py-2">{r.memo_id ? <Link href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"}</td>
-                  <td className="px-2 py-2">{badge(r.payment_status)}</td>
+                  <td data-col="sold_to" className="px-2 py-2">{r.sold_to ?? "—"}</td>
+                  <td data-col="sale_price" className="px-2 py-2 text-right">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "—"}</td>
+                  <td data-col="date_sold" className="px-2 py-2 whitespace-nowrap">{fmtDate(r.date_sold)}</td>
+                  <td data-col="memo" className="px-2 py-2">{r.memo_id ? <Link href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"}</td>
+                  <td data-col="memo_paid" className="px-2 py-2 text-right">{r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"}</td>
+                  <td data-col="memo_balance" className="px-2 py-2 text-right">{r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"}</td>
+                  <td data-col="payment_status" className="px-2 py-2">{badge(r.payment_status)}</td>
                 </tr>
               );
             })}

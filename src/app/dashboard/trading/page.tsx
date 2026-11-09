@@ -8,6 +8,9 @@ import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from
 import { Tile, TileEmpty, type Fact } from "@/components/tiles";
 import { KpiStrip, type Kpi } from "@/components/kpi";
 import { signedUsd } from "@/lib/reports";
+import { ColumnPicker } from "@/components/column-picker";
+import { COLUMNS } from "@/lib/columns";
+import { getHiddenColumns } from "@/lib/column-prefs";
 
 export const metadata: Metadata = { title: "Trading" };
 const STATUSES = ["Not Sold", "Unpaid", "Partial", "Paid"];
@@ -23,6 +26,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
   const supabase = await createClient();
   const kpiRequest = Promise.resolve(supabase.from("trades_kpi").select("*").maybeSingle());   // starts now, so it runs alongside the list
 
+  const hiddenRequest = getHiddenColumns(supabase, "trading");   // the person's saved column choices, fetched alongside the list
   let query = supabase.from("trade_overview").select("*", { count: "exact" });
   if (status) query = query.eq("payment_status", status);
   if (q) query = query.or(`item.ilike.%${q}%,sold_to.ilike.%${q}%,memo_no.ilike.%${q}%,notes.ilike.%${q}%`);
@@ -48,6 +52,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     { label: "Collected", value: usd.format(num(k.collected)), sub: "payments received" },
     { label: "Outstanding", value: usd.format(num(k.outstanding)), sub: "balance due across all", tone: "warn" },
   ];
+  const hidden = await hiddenRequest;
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const base = { q: q || undefined, status };
@@ -55,13 +60,14 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     const c = s === "Paid" ? "bg-emerald-100 text-emerald-900" : s === "Partial" ? "bg-amber-100 text-amber-900" : s === "Unpaid" ? "bg-red-100 text-red-900" : "bg-parchment text-ink-soft";
     return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${c}`}>{s}</span>;
   };
-  const h = (label: string, right?: boolean) => <th key={label} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{label}</th>;
+  const h = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{label}</th>;
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div><h1 className="font-display text-3xl text-forest">Trading</h1><p className="text-ink-soft">{total} {total === 1 ? "item" : "items"}</p></div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <div className="hidden lg:block"><ColumnPicker table="trading" columns={COLUMNS.trading.filter((c) => owner || !c.ownerOnly)} initialHidden={hidden} /></div>
           <a href="/dashboard/export?sheet=trading" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-gold-soft bg-white px-4 text-sm font-semibold hover:bg-parchment"><Download className="size-4" aria-hidden /> Download Excel</a>
           {can(session.role, "trades.edit") && <Link href="/dashboard/trading/new" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-forest px-4 text-sm font-semibold text-ivory hover:bg-forest-deep"><Plus className="size-4" aria-hidden /> Add item</Link>}
         </div>
@@ -75,10 +81,10 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
       </form>
       {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load trades. Please refresh the page.</p>}
       <div className="hidden overflow-x-auto rounded-md border border-gold-soft bg-white lg:block">
-        <table className="w-full text-xs">
+        <table data-table="trading" className="w-full text-xs">
           <caption className="sr-only">Trading</caption>
           <thead className="bg-parchment"><tr>
-            {h("Sr. No.")}{h("Date")}{h("Item")}{owner && <>{h("Vendor")}{h("Purchase Price", true)}</>}{h("Sale Price", true)}{h("Date Sold")}{h("Sold To")}{h("Memo")}{h("Memo Paid", true)}{h("Memo Balance", true)}{h("Payment Status")}{owner && h("Profit/Loss", true)}{h("Notes")}
+            {h("sr_no", "Sr. No.")}{h("trade_date", "Date")}{h("item", "Item")}{owner && <>{h("vendor", "Vendor")}{h("purchase_price", "Purchase Price", true)}</>}{h("sale_price", "Sale Price", true)}{h("date_sold", "Date Sold")}{h("sold_to", "Sold To")}{h("memo", "Memo")}{h("memo_paid", "Memo Paid", true)}{h("memo_balance", "Memo Balance", true)}{h("payment_status", "Payment Status")}{owner && h("profit", "Profit/Loss", true)}{h("notes", "Notes")}
           </tr></thead>
           <tbody className="divide-y divide-gold-soft">
             {(rows ?? []).map((r) => {
@@ -86,19 +92,19 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
               const profit = c && r.sale_price !== null ? num(r.sale_price) - num(c.purchase_price) : null;
               return (
                 <tr key={r.id} className="hover:bg-ivory">
-                  <td className="px-2 py-2">{can(session.role, "trades.edit") ? <Link href={`/dashboard/trading/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link> : r.sr_no}</td>
-                  <td className="px-2 py-2 whitespace-nowrap">{fmtDate(r.trade_date)}</td>
-                  <td className="px-2 py-2">{r.item}</td>
-                  {owner && <><td className="px-2 py-2">{c?.vendor ?? "—"}</td><td className="px-2 py-2 text-right">{c ? usd.format(num(c.purchase_price)) : "—"}</td></>}
-                  <td className="px-2 py-2 text-right">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "—"}</td>
-                  <td className="px-2 py-2 whitespace-nowrap">{fmtDate(r.date_sold)}</td>
-                  <td className="px-2 py-2">{r.sold_to ?? "—"}</td>
-                  <td className="px-2 py-2">{r.memo_id ? <Link href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"}</td>
-                  <td className="px-2 py-2 text-right">{r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"}</td>
-                  <td className="px-2 py-2">{badge(r.payment_status)}</td>
-                  {owner && <td className={`px-2 py-2 text-right ${profit !== null && profit < 0 ? "text-danger" : ""}`}>{profit !== null ? usd.format(profit) : "—"}</td>}
-                  <td className="px-2 py-2">{r.notes ?? ""}</td>
+                  <td data-col="sr_no" className="px-2 py-2">{can(session.role, "trades.edit") ? <Link href={`/dashboard/trading/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link> : r.sr_no}</td>
+                  <td data-col="trade_date" className="px-2 py-2 whitespace-nowrap">{fmtDate(r.trade_date)}</td>
+                  <td data-col="item" className="px-2 py-2">{r.item}</td>
+                  {owner && <><td data-col="vendor" className="px-2 py-2">{c?.vendor ?? "—"}</td><td data-col="purchase_price" className="px-2 py-2 text-right">{c ? usd.format(num(c.purchase_price)) : "—"}</td></>}
+                  <td data-col="sale_price" className="px-2 py-2 text-right">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "—"}</td>
+                  <td data-col="date_sold" className="px-2 py-2 whitespace-nowrap">{fmtDate(r.date_sold)}</td>
+                  <td data-col="sold_to" className="px-2 py-2">{r.sold_to ?? "—"}</td>
+                  <td data-col="memo" className="px-2 py-2">{r.memo_id ? <Link href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"}</td>
+                  <td data-col="memo_paid" className="px-2 py-2 text-right">{r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"}</td>
+                  <td data-col="memo_balance" className="px-2 py-2 text-right">{r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"}</td>
+                  <td data-col="payment_status" className="px-2 py-2">{badge(r.payment_status)}</td>
+                  {owner && <td data-col="profit" className={`px-2 py-2 text-right ${profit !== null && profit < 0 ? "text-danger" : ""}`}>{profit !== null ? usd.format(profit) : "—"}</td>}
+                  <td data-col="notes" className="px-2 py-2">{r.notes ?? ""}</td>
                 </tr>
               );
             })}
