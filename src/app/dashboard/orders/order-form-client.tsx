@@ -11,6 +11,7 @@ import { orderSchema, type OrderValues } from "@/lib/validation";
 import { computeCosts, inr, num, usd } from "@/lib/ledger";
 import { Button, Field, Notice } from "@/components/ui";
 import { DiamondShapePicker } from "@/components/diamond-shape-picker";
+import { SimilarBuyerHint } from "@/components/similar-buyer-hint";
 
 export function OrderForm({
   initial, isOwner, usdRate, buyers, types,
@@ -140,6 +141,7 @@ export function OrderForm({
           <Field id="sale_price" label="Sale Price (US$)" inputMode="decimal" error={errors.sale_price?.message} {...register("sale_price")} />
           <Field id="date_sold" label="Date Sold" type="date" error={errors.date_sold?.message} {...register("date_sold")} />
         </div>
+        <SimilarBuyerHint value={w.sold_to ?? ""} buyers={buyers} onPick={(name) => setValue("sold_to", name, { shouldDirty: true })} />
         <datalist id="buyers">{buyers.map((b) => <option key={b} value={b} />)}</datalist>
       </fieldset>
 

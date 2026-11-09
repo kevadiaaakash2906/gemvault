@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { ArrowLeftRight, Gem, HandCoins, Images, LayoutDashboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, ReceiptText, RotateCcw, Settings, TrendingUp, Users, Wallet, X } from "lucide-react";
+import { ArrowLeftRight, Contact, Gem, HandCoins, Images, LayoutDashboard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, ReceiptText, RotateCcw, Settings, TrendingUp, Users, Wallet, X } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 
-export type NavItem = { href: string; label: string; icon: "overview" | "team" | "orders" | "styles" | "trading" | "memos" | "expenses" | "settings" | "receivables" | "profit" | "returns" };
-const ICONS = { overview: LayoutDashboard, team: Users, orders: Gem, styles: Images, trading: ArrowLeftRight, memos: ReceiptText, expenses: Wallet, settings: Settings, receivables: HandCoins, profit: TrendingUp, returns: RotateCcw };
+export type NavItem = { href: string; label: string; icon: "overview" | "team" | "orders" | "styles" | "trading" | "memos" | "expenses" | "settings" | "receivables" | "profit" | "returns" | "buyers" | "out" };
+const ICONS = { overview: LayoutDashboard, team: Users, orders: Gem, styles: Images, trading: ArrowLeftRight, memos: ReceiptText, expenses: Wallet, settings: Settings, receivables: HandCoins, profit: TrendingUp, returns: RotateCcw, buyers: Contact, out: Package };
 
 export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: string; roleLabel: string }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -57,7 +57,7 @@ export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: st
 
   return (
     <>
-      <header className="flex items-center justify-between bg-forest px-4 py-2 lg:hidden">
+      <header className="flex items-center justify-between bg-forest px-4 py-2 lg:hidden print:hidden">
         <p className="font-display text-xl text-ivory">Vinere</p>
         <button onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open} className="grid size-11 place-items-center text-ivory">
           <Menu aria-hidden />
@@ -68,7 +68,7 @@ export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: st
 
       <aside
         className={clsx(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-forest py-4 transition-transform lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:transition-[width]",
+          "print:hidden fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-forest py-4 transition-transform lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:transition-[width]",
           open ? "translate-x-0" : "-translate-x-full",
           collapsed ? "lg:w-[4.5rem]" : "lg:w-64",
         )}

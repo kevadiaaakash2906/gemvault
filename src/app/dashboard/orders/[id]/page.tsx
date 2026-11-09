@@ -8,6 +8,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { ReturnPiece } from "@/components/return-piece";
 import { OrderForm } from "../order-form";
 import { OrderSaleForm } from "@/components/order-sale-form";
+import { OrderHoldPanel, type Hold } from "@/components/order-hold-panel";
 import { usd } from "@/lib/ledger";
 import { getMemoPreview } from "@/lib/memo-preview";
 import type { OrderValues } from "@/lib/validation";
@@ -30,6 +31,10 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
     owner ? supabase.from("order_costs").select("*").eq("order_id", id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   if (!o) notFound();
+  // Unsold pieces can be marked "out with a customer". If the database update has not been run yet this just comes back empty.
+  const holdRes = o.sale_price === null && can(session.role, "orders.hold")
+    ? await supabase.from("order_holds").select("held_by,held_since,note").eq("order_id", id).maybeSingle()
+    : null;
   const c = costRes.data;
   const pg = Number(o.net_wt) * Number(o.multiplier);
   const impliedRate = c && pg > 0 ? String(Math.round(Number(c.gold_amount) / pg)) : String(rates?.goldRate ?? "");
@@ -46,6 +51,9 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
       <h1 className="font-display text-3xl text-forest">Order {o.sr_no}</h1>
       <OrderForm initial={initial} isOwner={owner} usdRate={rates?.usdRate ?? null}
         buyers={(buyers ?? []).map((b) => b.name)} types={[...new Set((types ?? []).map((t) => t.jewelry_type as string))].sort()} />
+      {o.sale_price === null && can(session.role, "orders.hold") && (
+        <OrderHoldPanel orderId={id} hold={(holdRes?.data as Hold | null) ?? null} buyers={(buyers ?? []).map((b) => b.name)} />
+      )}
       {o.sale_price !== null && can(session.role, "returns.record") && (
         <ReturnPiece kind="order" id={id} label={o.style_no} buyer={o.sold_to} salePrice={Number(o.sale_price)}
           memoPaid={Number(o.memo_paid)} memoBill={Number(o.memo_paid) + Number(o.memo_balance)} />

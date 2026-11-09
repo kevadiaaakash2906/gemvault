@@ -10,6 +10,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (can(session.role, "styles.view")) items.push({ href: "/dashboard/styles", label: "Styles", icon: "styles" });
   if (can(session.role, "trades.view")) items.push({ href: "/dashboard/trading", label: "Trading", icon: "trading" });
   if (can(session.role, "memos.view")) items.push({ href: "/dashboard/memos", label: "Memos", icon: "memos" });
+  if (can(session.role, "buyers.view")) items.push({ href: "/dashboard/buyers", label: "Buyers", icon: "buyers" });
+  if (can(session.role, "orders.view")) items.push({ href: "/dashboard/out", label: "Out with customers", icon: "out" });
   if (can(session.role, "receivables.view")) items.push({ href: "/dashboard/receivables", label: "Who owes me", icon: "receivables" });
   if (can(session.role, "returns.view")) items.push({ href: "/dashboard/returns", label: "Returns", icon: "returns" });
   if (can(session.role, "expenses.view")) items.push({ href: "/dashboard/expenses", label: "Expenses", icon: "expenses" });
@@ -24,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         name={session.fullName || session.email}
         roleLabel={session.role ? ROLE_LABEL[session.role] : "No role yet"}
       />
-      <main id="main" className="min-w-0 flex-1 px-5 py-8 lg:px-10">
+      <main id="main" className="min-w-0 flex-1 px-5 py-8 lg:px-10 print:p-0">
         {children}
       </main>
     </div>

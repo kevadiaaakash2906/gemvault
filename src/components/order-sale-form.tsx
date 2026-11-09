@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { lookupMemo, saveOrderSale } from "@/app/actions/ledger";
 import { Button, Field, Notice } from "@/components/ui";
+import { SimilarBuyerHint } from "@/components/similar-buyer-hint";
 import { usd } from "@/lib/ledger";
 import { memoAfterSale } from "@/lib/reports";
 import type { MemoPreview } from "@/lib/memo-preview";
@@ -71,6 +72,7 @@ export function OrderSaleForm({ id, initial, initialMemo, buyers, alreadySold }:
         <Field id="sold_to" label="Sold to" value={v.sold_to} onChange={set("sold_to")} list="buyers-list" maxLength={120} required
           readOnly={!!memo} hint={memo ? `Memo ${memo.memo_no} belongs to ${memo.buyer}. For a different buyer, use a different memo number.` : undefined} />
       </div>
+      {!memo && <SimilarBuyerHint value={v.sold_to} buyers={buyers} onPick={(name) => { setV((cur) => ({ ...cur, sold_to: name })); setDone(false); }} />}
       <datalist id="buyers-list">{buyers.map((b) => <option key={b} value={b} />)}</datalist>
 
       {memo && (

@@ -20,6 +20,7 @@ export const PERMISSIONS = {
   "styles.delete": ["owner", "staff"],
   "orders.view": ["owner", "staff", "seller"],
   "orders.edit": ["owner", "staff"],
+  "orders.hold": ["owner", "staff"],   // mark a piece as out with a customer (not sold)
   "orders.sale": ["owner", "staff", "seller"],   // Sold To, Memo, Sale Price, Date Sold on an existing order
   "trades.view": ["owner", "staff", "seller"],
   "trades.edit": ["owner", "staff", "seller"],
@@ -30,6 +31,8 @@ export const PERMISSIONS = {
   "records.delete": ["owner", "staff"],
   "expenses.view": ["owner", "staff", "seller"],
   "expenses.manage": ["owner", "staff"],
+  "buyers.view": ["owner", "staff", "seller"],
+  "buyers.manage": ["owner"],   // rename and merge buyers
   "receivables.view": ["owner", "staff", "seller"],
   "reports.profit": ["owner", "staff", "seller"],
   "returns.record": ["owner", "staff"],

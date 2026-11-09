@@ -2,17 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { saveTrade } from "@/app/actions/ledger";
 import { tradeSchema, type TradeValues } from "@/lib/validation";
 import { Button, Field, Notice } from "@/components/ui";
+import { SimilarBuyerHint } from "@/components/similar-buyer-hint";
 
 export function TradeForm({ initial, isOwner, buyers }: { initial: TradeValues; isOwner: boolean; buyers: string[] }) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string>();
   const [pending, start] = useTransition();
-  const { register, handleSubmit, formState: { errors } } = useForm<TradeValues>({ resolver: zodResolver(tradeSchema), defaultValues: initial });
+  const { register, control, setValue, handleSubmit, formState: { errors } } = useForm<TradeValues>({ resolver: zodResolver(tradeSchema), defaultValues: initial });
+  const soldTo = useWatch({ control, name: "sold_to" });
   const onSubmit = (values: TradeValues) =>
     start(async () => {
       setServerError(undefined);
@@ -51,6 +53,7 @@ export function TradeForm({ initial, isOwner, buyers }: { initial: TradeValues; 
           <Field id="sale_price" label="Sale Price (US$)" inputMode="decimal" error={errors.sale_price?.message} {...register("sale_price")} />
           <Field id="date_sold" label="Date Sold" type="date" error={errors.date_sold?.message} {...register("date_sold")} />
         </div>
+        <SimilarBuyerHint value={soldTo ?? ""} buyers={buyers} onPick={(name) => setValue("sold_to", name, { shouldDirty: true })} />
         <datalist id="buyers">{buyers.map((b) => <option key={b} value={b} />)}</datalist>
       </fieldset>
       <div className="flex gap-3"><Button type="submit" loading={pending}>Save item</Button><Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button></div>
