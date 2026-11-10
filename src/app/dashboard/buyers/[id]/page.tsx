@@ -6,6 +6,7 @@ import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { fmtDate, num, usd } from "@/lib/ledger";
 import { PrintButton } from "@/components/print-button";
+import { PaidBar } from "@/components/paid-bar";
 import { RenameBuyer } from "@/components/buyer-tools";
 
 export const metadata: Metadata = { title: "Buyer statement" };
@@ -51,11 +52,14 @@ export default async function BuyerStatementPage({ params }: { params: Promise<{
         <PrintButton />
       </div>
 
-      <dl className="grid gap-4 rounded-md border border-gold-soft bg-white p-5 sm:grid-cols-3">
+      <div className="space-y-4 rounded-md border border-gold-soft bg-white p-5">
+      <dl className="grid gap-4 sm:grid-cols-3">
         <div><dt className="text-sm text-ink-soft">Total billed</dt><dd className="text-xl font-medium">{usd.format(billed)}</dd></div>
         <div><dt className="text-sm text-ink-soft">Total paid</dt><dd className="text-xl font-medium">{usd.format(paid)}</dd></div>
         <div><dt className="text-sm text-ink-soft">Balance due</dt><dd className="text-xl font-semibold">{usd.format(due)}</dd></div>
       </dl>
+      <PaidBar paid={paid} billed={billed} label={`Share of ${buyer.name}'s billed amount that is paid`} />
+      </div>
       {allIds.length > memos.length && <p className="text-sm text-ink-soft print:hidden">Showing the latest {MAX_MEMOS} memos.</p>}
 
       {memos.length === 0 && <p className="rounded-md border border-gold-soft bg-white p-5 text-ink-soft">No memos for this buyer yet.</p>}
@@ -70,6 +74,7 @@ export default async function BuyerStatementPage({ params }: { params: Promise<{
               <h2 className="font-display text-xl text-forest"><Link href={`/dashboard/memos/${mid}`} className="underline underline-offset-4">Memo {m.memo_no}</Link></h2>
               <p className="text-sm font-semibold">{m.payment_status}</p>
             </div>
+            <PaidBar paid={num(m.total_paid)} billed={num(m.total_bill)} label={`Memo ${m.memo_no} paid`} />
             <ul className="divide-y divide-gold-soft text-sm">
               {mo.map((o) => <li key={`o${o.sr_no}`} className="flex justify-between gap-3 py-1.5"><span>Order {o.sr_no} · {o.style_no}{o.jewelry_type ? ` · ${o.jewelry_type}` : ""}{o.date_sold ? ` · ${fmtDate(o.date_sold)}` : ""}</span><span>{usd.format(num(o.sale_price))}</span></li>)}
               {mt.map((t) => <li key={`t${t.sr_no}`} className="flex justify-between gap-3 py-1.5"><span>Trading {t.sr_no} · {t.item}{t.date_sold ? ` · ${fmtDate(t.date_sold)}` : ""}</span><span>{usd.format(num(t.sale_price))}</span></li>)}

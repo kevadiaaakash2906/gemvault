@@ -4,8 +4,10 @@ import { useState, useTransition } from "react";
 import { recordPayment, voidPayment } from "@/app/actions/ledger";
 import type { ActionResult } from "@/app/actions/auth";
 import { Button, Field, Notice } from "@/components/ui";
+import { useToast } from "@/components/toast";
 
 export function AddPayment({ memoId, balance }: { memoId: string; balance: number }) {
+  const toast = useToast();
   const [msg, setMsg] = useState<ActionResult>();
   const [key, setKey] = useState(() => crypto.randomUUID());
   const [amount, setAmount] = useState("");
@@ -18,7 +20,7 @@ export function AddPayment({ memoId, balance }: { memoId: string; balance: numbe
         start(async () => {
           const r = await recordPayment({ memoId, amount, paidOn, key });
           setMsg(r);
-          if (r.success) { setAmount(""); setKey(crypto.randomUUID()); }
+          if (r.success) { toast.success(r.success); setAmount(""); setKey(crypto.randomUUID()); }
         });
       }}
       className="space-y-3 rounded-md bg-parchment p-4"
@@ -30,12 +32,12 @@ export function AddPayment({ memoId, balance }: { memoId: string; balance: numbe
         <Button type="submit" loading={pending} disabled={balance <= 0}>Save payment</Button>
       </div>
       {msg?.error && <Notice tone="error">{msg.error}</Notice>}
-      {msg?.success && <Notice tone="success">{msg.success}</Notice>}
     </form>
   );
 }
 
 export function VoidPayment({ paymentId }: { paymentId: string }) {
+  const toast = useToast();
   const [msg, setMsg] = useState<ActionResult>();
   const [pending, start] = useTransition();
   return (
@@ -46,7 +48,7 @@ export function VoidPayment({ paymentId }: { paymentId: string }) {
         onClick={() => {
           const reason = window.prompt("Why is this payment being cancelled?");
           if (reason === null) return;
-          start(async () => setMsg(await voidPayment({ paymentId, reason })));
+          start(async () => { const r = await voidPayment({ paymentId, reason }); setMsg(r); if (r.success) toast.success(r.success); });
         }}
       >
         Cancel payment

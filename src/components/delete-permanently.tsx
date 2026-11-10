@@ -28,7 +28,7 @@ export function DeletePermanently({ kind, id, title, lines, redirectTo, blocked 
   return (
     <details className="rounded-md border border-danger/40 bg-white">
       <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-danger">{title}</summary>
-      <div className="space-y-4 border-t border-danger/30 p-4">
+      <div className="fade-in space-y-4 border-t border-danger/30 p-4">
         <ul className="list-disc space-y-1 pl-5 text-sm">{lines.map((l) => <li key={l}>{l}</li>)}</ul>
         {blocked ? <Notice tone="error">{blocked}</Notice> : (
           <form onSubmit={submit} className="space-y-4" autoComplete="off">

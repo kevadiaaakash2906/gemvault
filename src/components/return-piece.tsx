@@ -33,7 +33,7 @@ export function ReturnPiece({ kind, id, label, buyer, salePrice, memoPaid, memoB
   return (
     <details className="rounded-md border border-gold-soft bg-white">
       <summary className="flex min-h-11 cursor-pointer items-center px-4 font-semibold text-forest">Return this piece</summary>
-      <form onSubmit={submit} className="space-y-4 border-t border-gold-soft p-4" autoComplete="off">
+      <form onSubmit={submit} className="fade-in space-y-4 border-t border-gold-soft p-4" autoComplete="off">
         <ul className="list-disc space-y-1 pl-5 text-sm">
           <li>The sale ({usd.format(salePrice)} to {buyer}) is taken out of sales and profit.</li>
           <li>{label} goes back into stock.</li>

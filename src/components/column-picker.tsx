@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { Columns3 } from "lucide-react";
 import { saveColumns } from "@/app/actions/columns";
+import { useToast } from "@/components/toast";
 import { hiddenCss, type ColumnDef, type TableKey } from "@/lib/columns";
 
 /** "Columns" menu: tick the columns you want to see. Each change is saved to your account straight away. */
@@ -11,6 +12,7 @@ export function ColumnPicker({ table, columns, initialHidden }: { table: TableKe
   const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string }>();
   const [pending, start] = useTransition();
   const latest = useRef(0);
+  const toast = useToast();
 
   const update = (next: string[]) => {
     setHidden(next);
@@ -19,7 +21,8 @@ export function ColumnPicker({ table, columns, initialHidden }: { table: TableKe
     start(async () => {
       const r = await saveColumns({ table, hidden: next });
       if (mine !== latest.current) return;   // a newer change has already been sent
-      setStatus(r.error ? { tone: "error", text: r.error } : { tone: "ok", text: "Saved to your account" });
+      if (r.error) setStatus({ tone: "error", text: r.error });
+      else toast.success("Column layout saved");
     });
   };
   const toggle = (key: string) => update(hidden.includes(key) ? hidden.filter((k) => k !== key) : [...hidden, key]);
@@ -33,7 +36,7 @@ export function ColumnPicker({ table, columns, initialHidden }: { table: TableKe
           <Columns3 className="size-4" aria-hidden /> Columns
           {hidden.length > 0 && <span className="rounded bg-parchment px-1.5 text-xs">{shown}/{columns.length}</span>}
         </summary>
-        <div role="group" aria-label="Choose columns" className="absolute right-0 z-30 mt-2 w-72 max-w-[90vw] space-y-3 rounded-md border border-gold-soft bg-white p-4 shadow-lg">
+        <div role="group" aria-label="Choose columns" className="pop-in absolute right-0 z-30 mt-2 w-72 max-w-[90vw] space-y-3 rounded-md border border-gold-soft bg-white p-4 shadow-lg">
           <p className="text-sm text-ink-soft">Tick the columns to show. Your choice is saved to your account and follows you to any computer.</p>
           <ul className="max-h-72 space-y-1 overflow-y-auto text-sm">
             {columns.map((c) => (

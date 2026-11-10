@@ -64,7 +64,7 @@ export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: st
         </button>
       </header>
 
-      {open && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
+      {open && <div className="fade-in fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
 
       <aside
         className={clsx(

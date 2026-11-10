@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { clearOrderHold, setOrderHold } from "@/app/actions/holds";
 import { Button, Field, Notice } from "@/components/ui";
+import { useToast } from "@/components/toast";
 import { fmtDate } from "@/lib/ledger";
 
 export type Hold = { held_by: string; held_since: string; note: string | null };
@@ -11,16 +12,17 @@ export type Hold = { held_by: string; held_since: string; note: string | null };
 /** For an unsold piece: record that a customer has it (on approval, memo, consignment) without entering a fake sale. */
 export function OrderHoldPanel({ orderId, hold, buyers }: { orderId: string; hold: Hold | null; buyers: string[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [who, setWho] = useState("");
   const [since, setSince] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string>();
   const [pending, start] = useTransition();
 
-  const run = (fn: () => Promise<{ error?: string }>) => start(async () => {
+  const run = (fn: () => Promise<{ error?: string; success?: string }>) => start(async () => {
     setError(undefined);
     const r = await fn();
-    if (r.error) setError(r.error); else router.refresh();
+    if (r.error) setError(r.error); else { toast.success(r.success ?? "Saved."); router.refresh(); }
   });
 
   if (hold) {

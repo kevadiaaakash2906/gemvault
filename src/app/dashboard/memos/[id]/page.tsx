@@ -8,6 +8,7 @@ import { fmtDate, num, usd } from "@/lib/ledger";
 import { AddPayment, VoidPayment } from "./payment-panel";
 import { DeletePermanently } from "@/components/delete-permanently";
 import { PrintButton } from "@/components/print-button";
+import { PaidBar } from "@/components/paid-bar";
 
 export const metadata: Metadata = { title: "Memo" };
 
@@ -37,12 +38,15 @@ export default async function MemoPage({ params }: { params: Promise<{ id: strin
         </div>
         <PrintButton />
       </div>
-      <dl className="grid gap-4 rounded-md border border-gold-soft bg-white p-5 sm:grid-cols-4">
+      <div className="space-y-4 rounded-md border border-gold-soft bg-white p-5">
+      <dl className="grid gap-4 sm:grid-cols-4">
         <div><dt className="text-sm text-ink-soft">Bill</dt><dd className="text-xl font-medium">{usd.format(num(m.total_bill))}</dd></div>
         <div><dt className="text-sm text-ink-soft">Paid</dt><dd className="text-xl font-medium">{usd.format(num(m.total_paid))}</dd></div>
         <div><dt className="text-sm text-ink-soft">Balance due</dt><dd className="text-xl font-medium">{usd.format(balance)}</dd></div>
         <div><dt className="text-sm text-ink-soft">Status</dt><dd className="text-xl font-medium">{m.payment_status}</dd></div>
       </dl>
+      <PaidBar paid={num(m.total_paid)} billed={num(m.total_bill)} label="Share of this memo paid" />
+      </div>
 
       <section aria-labelledby="pieces" className="rounded-md border border-gold-soft bg-white p-5">
         <h2 id="pieces" className="font-display text-xl text-forest">Pieces on this memo</h2>

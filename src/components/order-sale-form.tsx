@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { lookupMemo, saveOrderSale } from "@/app/actions/ledger";
 import { Button, Field, Notice } from "@/components/ui";
+import { useToast } from "@/components/toast";
 import { SimilarBuyerHint } from "@/components/similar-buyer-hint";
 import { usd } from "@/lib/ledger";
 import { memoAfterSale } from "@/lib/reports";
@@ -20,14 +21,13 @@ export function OrderSaleForm({ id, initial, initialMemo, buyers, alreadySold }:
   const [memo, setMemo] = useState<Found | null>(initialMemo);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string>();
-  const [done, setDone] = useState(false);
+  const toast = useToast();
   const [pending, start] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const latest = useRef(0);
 
   function onMemoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const memo_no = e.target.value;
-    setDone(false);
     setV((cur) => ({ ...cur, memo_no }));
     clearTimeout(timer.current);
     const mine = ++latest.current;
@@ -43,16 +43,15 @@ export function OrderSaleForm({ id, initial, initialMemo, buyers, alreadySold }:
     }, 350);
   }
 
-  const set = (k: "sold_to" | "sale_price" | "date_sold") => (e: React.ChangeEvent<HTMLInputElement>) => { setV((cur) => ({ ...cur, [k]: e.target.value })); setDone(false); };
+  const set = (k: "sold_to" | "sale_price" | "date_sold") => (e: React.ChangeEvent<HTMLInputElement>) => { setV((cur) => ({ ...cur, [k]: e.target.value })); };
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(undefined);
-    setDone(false);
     start(async () => {
       const r = await saveOrderSale({ id, ...v });
       if (r.error) setError(r.error);
-      else { setDone(true); router.refresh(); }
+      else { toast.success("Sale saved."); router.refresh(); }
     });
   }
 
@@ -72,7 +71,7 @@ export function OrderSaleForm({ id, initial, initialMemo, buyers, alreadySold }:
         <Field id="sold_to" label="Sold to" value={v.sold_to} onChange={set("sold_to")} list="buyers-list" maxLength={120} required
           readOnly={!!memo} hint={memo ? `Memo ${memo.memo_no} belongs to ${memo.buyer}. For a different buyer, use a different memo number.` : undefined} />
       </div>
-      {!memo && <SimilarBuyerHint value={v.sold_to} buyers={buyers} onPick={(name) => { setV((cur) => ({ ...cur, sold_to: name })); setDone(false); }} />}
+      {!memo && <SimilarBuyerHint value={v.sold_to} buyers={buyers} onPick={(name) => { setV((cur) => ({ ...cur, sold_to: name })); }} />}
       <datalist id="buyers-list">{buyers.map((b) => <option key={b} value={b} />)}</datalist>
 
       {memo && (
@@ -105,7 +104,6 @@ export function OrderSaleForm({ id, initial, initialMemo, buyers, alreadySold }:
       </div>
       {alreadySold && <p className="text-sm text-ink-soft">To take a sale off this piece, ask staff to use Return this piece.</p>}
       {error && <Notice tone="error">{error}</Notice>}
-      {done && <Notice tone="success">Sale saved.</Notice>}
       <Button type="submit" loading={pending}>Save sale</Button>
     </form>
   );

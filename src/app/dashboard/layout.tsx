@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/auth";
 import { can, ROLE_LABEL } from "@/lib/permissions";
 import { Sidebar, type NavItem } from "@/components/sidebar";
+import { ToastProvider } from "@/components/toast";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
@@ -20,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (can(session.role, "team.manage")) items.push({ href: "/dashboard/team", label: "Team", icon: "team" });
 
   return (
+    <ToastProvider>
     <div className="min-h-dvh lg:flex">
       <Sidebar
         items={items}
@@ -30,5 +32,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {children}
       </main>
     </div>
+    </ToastProvider>
   );
 }
