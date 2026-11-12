@@ -9,13 +9,13 @@ Vinere now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses
 | Done and tested | Not built yet |
 | --- | --- |
 | Sign-in, password reset, Owner / Staff / Seller roles (see Roles below) | Seller portal and commissions |
-| Who owes me, Profit report, summary cards, and Returns (password-protected, with refunds and stock restored) | Reports beyond Who owes me and Profit |
+| Who owes me, Profit report, summary cards, Returns (password-protected, with refunds and stock restored), and a Money ledger (a seller records money sent to staff; it is logged once the staff member accepts it) | Reports beyond Who owes me and Profit |
 | Orders with every column of your sheet, Pg Wt and cost worked out the same way as your sheet |  |
 | Trading with vendor, purchase price and profit/loss | Import screen (import is a one-off SQL file) |
 | Memos, buyers and payments (part payments, cancelling with a reason) | |
 | Expenses and Rates, Excel download laid out like your VINERELEDGER workbook | End-to-end browser tests |
 | Roles enforced in the database as well as in the menus | |
-| 64 app tests and 239 database checks, including simultaneous payments | |
+| 88 app tests and 297 database checks, including simultaneous payments | |
 
 ## Roles
 
