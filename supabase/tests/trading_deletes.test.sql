@@ -1,7 +1,7 @@
 -- Permanent delete of memos and returns. Runs after returns.test.sql. Clean slate inside a transaction that is rolled back.
 begin;
 select t.admin();
-truncate public.returns, public.payments, public.order_costs, public.trade_costs, public.orders, public.trades,
+truncate public.order_holds, public.returns, public.payments, public.order_costs, public.trade_costs, public.orders, public.trades,
   public.expenses, public.memos, public.buyers;
 update auth.users set encrypted_password = extensions.crypt('owner-pw', extensions.gen_salt('bf')) where id = '00000000-0000-0000-0000-000000000001';
 update auth.users set encrypted_password = extensions.crypt('staff-pw', extensions.gen_salt('bf')) where id = '00000000-0000-0000-0000-000000000002';

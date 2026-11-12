@@ -2,7 +2,7 @@
 -- Works on a clean slate inside a transaction that is rolled back, so it leaves nothing behind.
 begin;
 select t.admin();
-truncate public.returns, public.payments, public.order_costs, public.trade_costs, public.orders, public.trades,
+truncate public.order_holds, public.returns, public.payments, public.order_costs, public.trade_costs, public.orders, public.trades,
   public.expenses, public.memos, public.buyers;
 update public.business_settings set gold_rate = 17000, usd_rate = 94;
 

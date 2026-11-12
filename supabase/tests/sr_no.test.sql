@@ -1,7 +1,7 @@
 -- Choosing the Sr. No. when adding an order. Runs last. Clean slate inside a transaction that is rolled back.
 begin;
 select t.admin();
-truncate public.returns, public.payments, public.order_costs, public.trade_costs, public.orders, public.trades, public.expenses, public.memos, public.buyers;
+truncate public.order_holds, public.returns, public.payments, public.order_costs, public.trade_costs, public.orders, public.trades, public.expenses, public.memos, public.buyers;
 
 do $$
 declare
