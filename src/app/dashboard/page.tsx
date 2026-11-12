@@ -40,13 +40,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const showProfit = can(role, "reports.profit");
   const supabase = await createClient();
   // Everything on this page is asked for at the same time: one round trip to the database, not several.
-  const [summaryRes, waitingRes, paymentsRes, monthsRes, teamRes] = await Promise.all([
+  const [summaryRes, waitingRes, paymentsRes, monthsRes, teamRes, ledgerRes] = await Promise.all([
     showMoney ? supabase.from("receivables_summary").select("*").maybeSingle() : null,
     showMoney ? supabase.from("buyer_receivables").select("buyer,balance_due,oldest_unpaid_on").gt("balance_due", 0).order("oldest_unpaid_on", { ascending: true, nullsFirst: false }).limit(5) : null,
     showMoney ? supabase.from("recent_payments").select("buyer,memo_no,amount,paid_on").order("paid_on", { ascending: false }).order("created_at", { ascending: false }).limit(6) : null,
     showProfit ? supabase.from("monthly_profit").select("month,net_profit").not("month", "is", null).order("month", { ascending: false }).limit(6) : null,
     can(role, "team.manage") ? supabase.from("user_roles").select("user_id", { count: "exact", head: true }) : null,
+    can(role, "money.send") || can(role, "money.respond") ? supabase.from("money_summary").select("pending_total,pending_count").maybeSingle() : null,   // money waiting to be accepted
   ]);
+  const waitingMoney = num(ledgerRes?.data?.pending_count);
 
   const billed = num(summaryRes?.data?.total_billed);
   const paid = num(summaryRes?.data?.total_paid);
@@ -71,6 +73,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <div>
         <h1 className="font-display text-3xl text-forest">Welcome{session.fullName ? `, ${session.fullName}` : ""}</h1>
       </div>
+
+      {waitingMoney > 0 && (
+        <Link href="/dashboard/money" className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900 hover:bg-amber-100">
+          <span>
+            <strong>{waitingMoney} money {waitingMoney === 1 ? "transfer" : "transfers"} ({usd.format(num(ledgerRes?.data?.pending_total))})</strong>{" "}
+            {can(role, "money.respond") ? "waiting for you to accept." : "you sent still waiting to be accepted."}
+          </span>
+          <ArrowRight className="size-4 shrink-0" aria-hidden />
+        </Link>
+      )}
 
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2">
