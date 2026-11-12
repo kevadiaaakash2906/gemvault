@@ -162,3 +162,15 @@ To give someone a role, see "Adding people" above. If you later want sellers not
 5. People only get the tabs and columns they are allowed to see.
 6. **Adding this feature needs the Excel library.** Upload `package.json` too; Vercel installs it automatically when it builds.
 
+## Money ledger (a seller sends money to a staff member)
+
+1. **Database first.** In Supabase open **SQL Editor, New query**, paste the whole file `supabase/migrations/20261110000012_money.sql`, and click **Run**. It only adds new tables and actions; none of your data changes. Run it after your other migrations.
+2. **Upload the changed files** to GitHub and wait for Vercel to show **Ready**. **Money** then appears in the menu for everyone.
+3. **The seller** (for example Het) opens **Money**, chooses the staff member (for example Arpan), types the amount (and a date or note if they like), and clicks **Send for acceptance**. It shows as **Waiting**. It is **not logged anywhere** yet.
+4. **The staff member** opens **Money**. The transfer is under **Waiting for you** (and the Overview shows a heads-up). Once they have really received the money they click **Accept**, and only then is it **Logged** and counted. If it did not arrive they click **Reject** and give a reason, and nothing is logged.
+5. **The seller** can **Cancel** a transfer while it is still waiting (for example, a wrong amount), then send it again.
+6. **The owner** sees every transfer and the totals by person. The owner can **Reverse** a logged transfer (a reason is required) to take it back out of the totals. It stays in the list as Reversed. The owner can also clear a waiting transfer that is stuck, for example if the staff member left.
+7. **Privacy:** a seller only sees transfers they sent, and a staff member only sees transfers sent to them. The owner sees all. Only the person a transfer was sent to can accept it, not even the owner.
+8. **More people later:** add a new seller or staff member under **Team** as usual. Every seller can send to any active staff member, and each staff member only sees what was sent to them.
+9. Nothing is ever edited or deleted. Every step is saved in the audit log. Amounts are in US dollars.
+
