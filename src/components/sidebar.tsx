@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { ArrowLeftRight, Contact, Gem, HandCoins, Images, LayoutDashboard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, ReceiptText, RotateCcw, Settings, TrendingUp, Users, Wallet, X } from "lucide-react";
+import { ArrowLeftRight, Banknote, Contact, Gem, HandCoins, Images, LayoutDashboard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, ReceiptText, RotateCcw, Settings, TrendingUp, Users, Wallet, X } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 
-export type NavItem = { href: string; label: string; icon: "overview" | "team" | "orders" | "styles" | "trading" | "memos" | "expenses" | "settings" | "receivables" | "profit" | "returns" | "buyers" | "out" };
-const ICONS = { overview: LayoutDashboard, team: Users, orders: Gem, styles: Images, trading: ArrowLeftRight, memos: ReceiptText, expenses: Wallet, settings: Settings, receivables: HandCoins, profit: TrendingUp, returns: RotateCcw, buyers: Contact, out: Package };
+export type NavItem = { href: string; label: string; icon: "overview" | "team" | "orders" | "styles" | "trading" | "memos" | "expenses" | "settings" | "receivables" | "profit" | "returns" | "buyers" | "out" | "money" };
+const ICONS = { overview: LayoutDashboard, team: Users, orders: Gem, styles: Images, trading: ArrowLeftRight, memos: ReceiptText, expenses: Wallet, settings: Settings, receivables: HandCoins, profit: TrendingUp, returns: RotateCcw, buyers: Contact, out: Package, money: Banknote };
 
 export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: string; roleLabel: string }) {
   const [collapsed, setCollapsed] = useState(false);
