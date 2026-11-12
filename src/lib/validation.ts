@@ -130,6 +130,15 @@ export const memoLookupSchema = z.object({
   memo_no: z.string().trim().regex(/^[A-Za-z0-9._-]{1,20}$/, "Memo: letters, numbers and . _ - only (max 20)."),
   order_id: z.uuid().optional(),
 });
+export const moneySendSchema = z.object({
+  to: z.uuid("Choose who you sent the money to."),
+  amount: z.string().trim().regex(/^\d{1,8}(\.\d{1,2})?$/, "Amount: a number like 500 or 500.50.").refine((v) => Number(v) > 0, "The amount must be more than zero."),
+  sent_on: date.optional(),
+  note: z.string().trim().max(200, "Note: 200 characters at most.").optional(),
+});
+export const moneyIdSchema = z.object({ id: z.uuid() });
+export const moneyReasonSchema = z.object({ id: z.uuid(), reason: z.string().trim().min(3, "Give a short reason.").max(300, "The reason is too long (300 characters at most).") });
+export const moneyCancelSchema = z.object({ id: z.uuid(), reason: z.string().trim().max(300, "The reason is too long (300 characters at most).").optional() });
 export const confirmDeleteSchema = z.object({
   id: z.uuid(),
   password: z.string().min(1, "Enter your password to confirm.").max(200),

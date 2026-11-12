@@ -38,6 +38,11 @@ export const PERMISSIONS = {
   "returns.record": ["owner", "staff"],
   "returns.view": ["owner", "staff", "seller"],
   "returns.delete": ["owner", "staff", "seller"],   // permanently, with the person's own password
+  // Money ledger: people only ever see their own transfers; the owner sees all of them.
+  "money.view": ["owner", "staff", "seller"],
+  "money.send": ["seller"],      // a seller enters money they have sent to a staff member (it waits until that person accepts)
+  "money.respond": ["staff"],    // staff accept or reject money sent to them
+  "money.reverse": ["owner"],    // take a logged transfer back out, with a reason
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
