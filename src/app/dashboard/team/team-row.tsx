@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setUserActive, setUserRole } from "@/app/actions/team";
+import { renameUser, setUserActive, setUserRole } from "@/app/actions/team";
 import { ROLES, ROLE_LABEL, type Role } from "@/lib/permissions";
 import { Button, Notice } from "@/components/ui";
 
@@ -11,6 +11,15 @@ export function TeamRow({ userId, email, name, role, active, isSelf }: Props) {
   const [choice, setChoice] = useState<Role | "">(role ?? "");
   const [message, setMessage] = useState<{ error?: string; success?: string }>();
   const [pending, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState(name ?? "");
+
+  const saveName = () =>
+    startTransition(async () => {
+      const r = await renameUser({ userId, name: nameInput });
+      setMessage(r);
+      if (!r.error) setEditing(false);
+    });
 
   const saveRole = () => {
     if (!choice) return setMessage({ error: "Choose a role first." });
@@ -64,6 +73,23 @@ export function TeamRow({ userId, email, name, role, active, isSelf }: Props) {
           </div>
         )}
       </div>
+      {editing ? (
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-0 flex-1 basis-56">
+            <label htmlFor={`name-${userId}`} className="block text-sm font-medium">Name shown for {email}</label>
+            <input id={`name-${userId}`} value={nameInput} maxLength={60} onChange={(e) => setNameInput(e.target.value)} placeholder="For example: Arpan" autoComplete="off"
+              className="mt-1 min-h-11 w-full rounded-md border border-gold-soft bg-white px-3" />
+            <p className="mt-1 text-sm text-ink-soft">Leave it empty to show the email again.</p>
+          </div>
+          <Button onClick={saveName} loading={pending}>Save name</Button>
+          <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => { setNameInput(name ?? ""); setMessage(undefined); setEditing(true); }}
+          className="min-h-11 text-sm font-medium text-forest underline underline-offset-4">
+          {name ? "Rename" : "Give a name"}
+        </button>
+      )}
       {message?.error && <Notice tone="error">{message.error}</Notice>}
       {message?.success && <Notice tone="success">{message.success}</Notice>}
     </li>
