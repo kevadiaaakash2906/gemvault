@@ -102,9 +102,11 @@ begin
     format($q$update public.profiles set is_active = true where id = %L$q$, sellera), 'permission denied');
   perform t.denied('seller cannot change their email column',
     format($q$update public.profiles set email = 'x@y.com' where id = %L$q$, sellera), 'permission denied');
-  update public.profiles set full_name = 'Seller A' where id = sellera;
-  perform t.ok('seller can edit their own name', (select full_name from public.profiles where id = sellera) = 'Seller A');
-  update public.profiles set full_name = 'Pwned' where id = sellerb;
+  perform t.denied('a person cannot set their own display name (the owner does that)',
+    format($q$update public.profiles set full_name = 'Seller A' where id = %L$q$, sellera), 'permission denied');
+  update public.profiles set phone = '555-0100' where id = sellera;
+  perform t.ok('a person can still keep their own phone number', (select phone from public.profiles where id = sellera) = '555-0100');
+  update public.profiles set phone = 'hacked' where id = sellerb;
   get diagnostics n = row_count;
   perform t.ok('seller cannot edit another seller', n = 0);
   perform t.denied('seller cannot write audit entries directly',
