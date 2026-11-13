@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HISTORY_FILTERS, MONEY_STATUS_LABEL, MONEY_STATUS_STYLE, isMoneyStatus, moneyStatusHelp } from "@/lib/money";
-import { moneyCancelSchema, moneyIdSchema, moneyReasonSchema, moneySendSchema } from "@/lib/validation";
+import { confirmDeleteSchema, moneyCancelSchema, moneyIdSchema, moneyReasonSchema, moneySendSchema, renameSchema } from "@/lib/validation";
 
 const id = "11111111-1111-4111-8111-111111111111";
 
@@ -33,6 +33,25 @@ describe("answering a transfer", () => {
     expect(moneyReasonSchema.safeParse({ id, reason: "ab" }).success).toBe(false);
     expect(moneyCancelSchema.safeParse({ id }).success).toBe(true);
     expect(moneyCancelSchema.safeParse({ id, reason: "x".repeat(301) }).success).toBe(false);
+  });
+});
+
+describe("deleting a transfer from the ledger", () => {
+  it("needs the transfer and the owner's password", () => {
+    expect(confirmDeleteSchema.safeParse({ id, password: "secret" }).success).toBe(true);
+    expect(confirmDeleteSchema.safeParse({ id, password: "" }).success).toBe(false);
+    expect(confirmDeleteSchema.safeParse({ id: "x", password: "secret" }).success).toBe(false);
+  });
+});
+
+describe("renaming people", () => {
+  it("accepts a normal name, an accented name, and an empty name (which shows the email again)", () => {
+    for (const name of ["Arpan", "Het K", "José O'Brien", "Het-2", ""]) expect(renameSchema.safeParse({ userId: id, name }).success, name).toBe(true);
+  });
+  it("trims spaces, and rejects tags, control characters and names over 60 characters", () => {
+    expect(renameSchema.parse({ userId: id, name: "  Het  " }).name).toBe("Het");
+    for (const name of ["<b>Het</b>", "a>b", "x".repeat(61), "bad\u0007name"]) expect(renameSchema.safeParse({ userId: id, name }).success, name).toBe(false);
+    expect(renameSchema.safeParse({ userId: "not-an-id", name: "Het" }).success).toBe(false);
   });
 });
 

@@ -10,7 +10,7 @@ describe("the three roles", () => {
     expect(allowed("owner")).toEqual(ALL.filter((p) => p !== "money.send" && p !== "money.respond").sort());
   });
   it("staff see and edit everything except Team, the audit log and merging buyers", () => {
-    expect(allowed("staff")).toEqual(ALL.filter((p) => !["team.manage", "audit.view", "buyers.manage", "money.send", "money.reverse"].includes(p)).sort());
+    expect(allowed("staff")).toEqual(ALL.filter((p) => !["team.manage", "audit.view", "buyers.manage", "money.send", "money.reverse", "money.delete"].includes(p)).sort());
     expect(can("staff", "settings.edit")).toBe(true);     // Rates
     expect(can("staff", "costs.view")).toBe(true);
     expect(can("staff", "team.manage")).toBe(false);
@@ -31,6 +31,7 @@ describe("the three roles", () => {
     expect(["owner", "staff", "seller"].map((r) => can(r as Role, "money.send"))).toEqual([false, false, true]);
     expect(["owner", "staff", "seller"].map((r) => can(r as Role, "money.respond"))).toEqual([false, true, false]);
     expect(["owner", "staff", "seller"].map((r) => can(r as Role, "money.reverse"))).toEqual([true, false, false]);
+    expect(["owner", "staff", "seller"].map((r) => can(r as Role, "money.delete"))).toEqual([true, false, false]);   // mistakes and tests: owner only
     expect(can(null, "money.view")).toBe(false);
   });
   it("denies everything when there is no role", () => {
