@@ -139,6 +139,10 @@ export const moneySendSchema = z.object({
 export const moneyIdSchema = z.object({ id: z.uuid() });
 export const moneyReasonSchema = z.object({ id: z.uuid(), reason: z.string().trim().min(3, "Give a short reason.").max(300, "The reason is too long (300 characters at most).") });
 export const moneyCancelSchema = z.object({ id: z.uuid(), reason: z.string().trim().max(300, "The reason is too long (300 characters at most).").optional() });
+export const renameSchema = z.object({
+  userId: z.uuid(),
+  name: z.string().trim().max(60, "The name is too long (60 characters at most).").regex(/^[^<>\u0000-\u001f]*$/, "The name cannot contain < or >."),
+});
 export const confirmDeleteSchema = z.object({
   id: z.uuid(),
   password: z.string().min(1, "Enter your password to confirm.").max(200),

@@ -43,6 +43,7 @@ export const PERMISSIONS = {
   "money.send": ["seller"],      // a seller enters money they have sent to a staff member (it waits until that person accepts)
   "money.respond": ["staff"],    // staff accept or reject money sent to them
   "money.reverse": ["owner"],    // take a logged transfer back out, with a reason
+  "money.delete": ["owner"],     // remove a transfer from the ledger altogether (mistakes and tests), with the owner's password
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
