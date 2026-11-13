@@ -21,7 +21,7 @@ export default async function TeamPage() {
       <div>
         <h1 className="font-display text-3xl text-forest">Team</h1>
         <p className="mt-1 text-ink-soft">
-          Add people in Supabase (Authentication, then Users), then give them a role here. You cannot change your own role.
+          Add people in Supabase (Authentication, then Users), then give them a name and a role here. You cannot change your own role.
         </p>
       </div>
       <ul className="divide-y divide-gold-soft rounded-md border border-gold-soft bg-white">
