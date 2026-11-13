@@ -15,7 +15,7 @@ Vinere now mirrors your Excel workbook only: **Orders**, **Trading**, **Expenses
 | Memos, buyers and payments (part payments, cancelling with a reason) | |
 | Expenses and Rates, Excel download laid out like your VINERELEDGER workbook | End-to-end browser tests |
 | Roles enforced in the database as well as in the menus | |
-| 88 app tests and 297 database checks, including simultaneous payments | |
+| 91 app tests and 328 database checks, including simultaneous payments | |
 
 ## Roles
 
