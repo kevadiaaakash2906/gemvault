@@ -5,7 +5,7 @@ import type { ActionResult } from "@/app/actions/auth";
 import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { moneyCancelSchema, moneyIdSchema, moneyReasonSchema, moneySendSchema } from "@/lib/validation";
+import { confirmDeleteSchema, moneyCancelSchema, moneyIdSchema, moneyReasonSchema, moneySendSchema } from "@/lib/validation";
 
 function friendly(error: { code?: string; message: string }): string {
   if (error.code === "42501" || error.code === "P0001" || error.code === "P0002") return error.message;
@@ -49,6 +49,15 @@ export async function cancelMoney(values: unknown): Promise<ActionResult> {
   if (!p.success) return { error: firstIssue(p.error) };
   const { error } = await (await createClient()).rpc("cancel_money", { p_id: p.data.id, p_reason: p.data.reason || null });
   return error ? { error: friendly(error) } : done("Cancelled.");
+}
+
+/** The owner removes a transfer from the ledger altogether (a mistake or a test). Needs the owner's own password. */
+export async function deleteMoney(values: unknown): Promise<ActionResult> {
+  await requirePermission("money.delete");
+  const p = confirmDeleteSchema.safeParse(values);
+  if (!p.success) return { error: firstIssue(p.error) };
+  const { error } = await (await createClient()).rpc("delete_money", { p_id: p.data.id, p_password: p.data.password });
+  return error ? { error: friendly(error) } : done("Deleted from the ledger.");
 }
 
 export async function reverseMoney(values: unknown): Promise<ActionResult> {
