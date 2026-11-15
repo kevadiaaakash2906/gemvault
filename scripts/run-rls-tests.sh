@@ -24,5 +24,6 @@ run_sql_test supabase/tests/trading_deletes.test.sql
 run_sql_test supabase/tests/sr_no.test.sql
 run_sql_test supabase/tests/money.test.sql
 run_sql_test supabase/tests/rename_delete_money.test.sql
+run_sql_test supabase/tests/live_stock_value.test.sql
 bash scripts/concurrency-test.sh "$DB"
 echo "Security tests finished: all passed."
