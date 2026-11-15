@@ -162,3 +162,17 @@ export async function saveRates(values: unknown): Promise<ActionResult> {
   revalidatePath("/dashboard", "layout");
   return { success: "Rates saved. New orders will use them." };
 }
+
+/** Re-prices every unsold order that has a cost, using the saved gold and dollar rates. */
+export async function refreshUnsoldCosts(): Promise<ActionResult & { count?: number }> {
+  await requirePermission("settings.edit");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("refresh_unsold_costs");
+  if (error) return { error: friendly(error) };
+  revalidatePath("/dashboard", "layout");
+  const count = Number(data);
+  return {
+    count,
+    success: count === 0 ? "No unsold order has a cost on file, so nothing changed." : `Updated the cost of ${count} unsold ${count === 1 ? "piece" : "pieces"}.`,
+  };
+}
