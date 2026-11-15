@@ -28,6 +28,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const status = STATUSES.includes(sp.status ?? "") ? sp.status : undefined;
   const supabase = await createClient();
   const kpiRequest = Promise.resolve(supabase.from("orders_kpi").select("*").maybeSingle());   // starts now, so it runs alongside the list
+  const stockRequest = Promise.resolve(supabase.rpc("live_stock_value"));   // stock at cost, re-priced at today's rates
 
   const hiddenRequest = getHiddenColumns(supabase, "orders");   // the person's saved column choices, fetched alongside the list
   let query = supabase.from("order_overview").select("*", { count: "exact" });
@@ -50,14 +51,15 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   (costRes.data ?? []).forEach((c: Record<string, number> & { order_id: string }) => costs.set(c.order_id, c));
   (signed.data ?? []).forEach((x) => { if (x.path && x.signedUrl) thumbUrls.set(x.path, x.signedUrl); });
 
-  const { data: k } = await kpiRequest;
+  const [{ data: k }, { data: liveStock }] = await Promise.all([kpiRequest, stockRequest]);
+  const stockValue = num(liveStock ?? k?.stock_value);   // falls back to the saved cost if the database update has not run yet
   const cards: Kpi[] = !k ? [] : owner ? [
     { label: "Total revenue", value: usd.format(num(k.revenue)), sub: `from ${num(k.sold_items)} sold items` },
     { label: "Total cost", value: usd.format(num(k.cost)), sub: "manufacturing + labor" },
     { label: "Gross profit / loss", value: signedUsd(num(k.profit)), sub: "sold pieces with a cost on file", tone: num(k.profit) < 0 ? "bad" : "good" },
     { label: "Amount collected", value: usd.format(num(k.collected)), sub: "payments received" },
     { label: "Outstanding balance", value: usd.format(num(k.outstanding)), sub: "across all orders", tone: "warn" },
-    { label: "Stock on hand", value: String(num(k.stock_items)), sub: `unsold items worth ${usd.format(num(k.stock_value))} at cost` },
+    { label: "Stock on hand", value: String(num(k.stock_items)), sub: `unsold items worth ${usd.format(stockValue)} at cost` },
   ] : [
     { label: "Total revenue", value: usd.format(num(k.revenue)), sub: `from ${num(k.sold_items)} sold items` },
     { label: "Amount collected", value: usd.format(num(k.collected)), sub: "payments received" },
