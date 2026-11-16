@@ -12,8 +12,8 @@ const ICONS = { overview: LayoutDashboard, team: Users, orders: Gem, styles: Ima
 
 /** The menu is shown in these groups. A page the person may not open is simply missing from `items`, and an empty group is not drawn. */
 const GROUPS: { label: string; hrefs: string[] }[] = [
-  { label: "Sales", hrefs: ["/dashboard/orders", "/dashboard/styles", "/dashboard/trading", "/dashboard/out"] },
-  { label: "Money", hrefs: ["/dashboard/memos", "/dashboard/buyers", "/dashboard/receivables", "/dashboard/money", "/dashboard/returns"] },
+  { label: "Sales", hrefs: ["/dashboard/orders", "/dashboard/trading"] },
+  { label: "Ledger", hrefs: ["/dashboard/memos", "/dashboard/buyers", "/dashboard/receivables", "/dashboard/money", "/dashboard/returns", "/dashboard/styles", "/dashboard/out"] },
   { label: "Reports", hrefs: ["/dashboard/expenses", "/dashboard/profit"] },
   { label: "Admin", hrefs: ["/dashboard/settings", "/dashboard/team"] },
 ];
