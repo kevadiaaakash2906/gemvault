@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
@@ -89,7 +90,7 @@ export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: st
   return (
     <>
       <header className="flex items-center justify-between bg-forest px-4 py-2 lg:hidden print:hidden">
-        <p className="font-display text-xl text-ivory">Vinere</p>
+        <Link href="/dashboard"><Image src="/vinere-logo-white.png" alt="Vinere Jewellery" width={212} height={92} priority className="h-9 w-auto" /></Link>
         <button onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open} className="grid size-11 place-items-center text-ivory">
           <Menu aria-hidden />
         </button>
@@ -105,7 +106,7 @@ export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: st
         )}
       >
         <div className="mb-3 flex shrink-0 items-center justify-between px-5">
-          <p className={clsx("font-display text-2xl text-ivory", collapsed && "lg:sr-only")}>Vinere</p>
+          <Link href="/dashboard" className={clsx(collapsed && "lg:hidden")}><Image src="/vinere-logo-white.png" alt="Vinere Jewellery" width={212} height={92} priority className="h-12 w-auto" /></Link>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="grid size-11 place-items-center text-ivory lg:hidden">
             <X aria-hidden />
           </button>
