@@ -6,8 +6,9 @@ import Link from "next/link";
 import clsx from "clsx";
 import { ArrowRight, Plus } from "lucide-react";
 import { Notice } from "@/components/ui";
+import { SalesProfitChart, TopBars, shortMonth } from "@/components/charts";
 import { fmtDate, num, usd } from "@/lib/ledger";
-import { ageTone, daysWaiting, monthLabel, signedUsd, waitingLabel } from "@/lib/reports";
+import { ageTone, daysWaiting, waitingLabel } from "@/lib/reports";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -40,13 +41,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const showProfit = can(role, "reports.profit");
   const supabase = await createClient();
   // Everything on this page is asked for at the same time: one round trip to the database, not several.
-  const [summaryRes, waitingRes, paymentsRes, monthsRes, teamRes, ledgerRes] = await Promise.all([
+  const [summaryRes, waitingRes, paymentsRes, monthsRes, teamRes, ledgerRes, topRes] = await Promise.all([
     showMoney ? supabase.from("receivables_summary").select("*").maybeSingle() : null,
     showMoney ? supabase.from("buyer_receivables").select("buyer,balance_due,oldest_unpaid_on").gt("balance_due", 0).order("oldest_unpaid_on", { ascending: true, nullsFirst: false }).limit(5) : null,
     showMoney ? supabase.from("recent_payments").select("buyer,memo_no,amount,paid_on").order("paid_on", { ascending: false }).order("created_at", { ascending: false }).limit(6) : null,
-    showProfit ? supabase.from("monthly_profit").select("month,net_profit").not("month", "is", null).order("month", { ascending: false }).limit(6) : null,
+    showProfit ? supabase.from("monthly_profit").select("month,net_profit,sales").not("month", "is", null).order("month", { ascending: false }).limit(12) : null,
     can(role, "team.manage") ? supabase.from("user_roles").select("user_id", { count: "exact", head: true }) : null,
     can(role, "money.send") || can(role, "money.respond") ? supabase.from("money_summary").select("pending_total,pending_count").maybeSingle() : null,   // money waiting to be accepted
+    showProfit ? supabase.from("buyer_profit").select("buyer_id,buyer,sales,profit").order("sales", { ascending: false }).limit(5) : null,
   ]);
   const waitingMoney = num(ledgerRes?.data?.pending_count);
 
@@ -56,8 +58,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const percentCollected = billed > 0 ? Math.min(100, Math.round((paid / billed) * 100)) : 0;
   const waiting = waitingRes?.data ?? [];
   const payments = paymentsRes?.data ?? [];
-  const months = [...(monthsRes?.data ?? [])].reverse();   // oldest first, so the bars read left to right in time
-  const biggest = Math.max(1, ...months.map((m) => Math.abs(num(m.net_profit))));
+  const points = [...(monthsRes?.data ?? [])].reverse()   // oldest first, so the bars read left to right in time
+    .map((m) => ({ label: shortMonth(m.month), sales: num(m.sales), profit: num(m.net_profit) }));
+  const topBuyers = (topRes?.data ?? []).filter((b) => num(b.sales) > 0)
+    .map((b) => ({ key: String(b.buyer_id), name: String(b.buyer), value: num(b.sales), note: `Profit ${usd.format(num(b.profit))}` }));
   const actions = [
     can(role, "orders.edit") && { href: "/dashboard/orders/new", label: "Add order" },
     can(role, "trades.edit") && { href: "/dashboard/trading/new", label: "Add trading item" },
@@ -113,6 +117,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </section>
       )}
 
+      {showProfit && (
+        <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
+          <section aria-labelledby="trend" className={card}>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div><h2 id="trend" className="font-display text-xl text-forest">Sales vs net profit</h2><p className="text-sm text-ink-soft">By month, last {points.length || 12} months</p></div>
+              <Link href="/dashboard/profit?view=month" className={linkCls}>Full profit report <ArrowRight className="size-4" aria-hidden /></Link>
+            </div>
+            <SalesProfitChart data={points} label="Sales and net profit by month" />
+          </section>
+          <section aria-labelledby="top-buyers" className={card}>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div><h2 id="top-buyers" className="font-display text-xl text-forest">Top buyers</h2><p className="text-sm text-ink-soft">The five biggest by sales</p></div>
+            </div>
+            <TopBars rows={topBuyers} />
+            <Link href="/dashboard/buyers" className={linkCls}>All buyers <ArrowRight className="size-4" aria-hidden /></Link>
+          </section>
+        </div>
+      )}
+
       {showMoney && (
         <div className="grid gap-5 lg:grid-cols-2">
           <section aria-labelledby="waiting" className={card}>
@@ -149,28 +172,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <Link href="/dashboard/memos" className={linkCls}>Open memos <ArrowRight className="size-4" aria-hidden /></Link>
           </section>
         </div>
-      )}
-
-      {showProfit && (
-        <section aria-labelledby="trend" className={card}>
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div><h2 id="trend" className="font-display text-xl text-forest">Net profit, last {months.length || 6} months</h2><p className="text-sm text-ink-soft">Order profit + trading profit − expenses</p></div>
-            <Link href="/dashboard/profit?view=month" className={linkCls}>Full profit report <ArrowRight className="size-4" aria-hidden /></Link>
-          </div>
-          <ul className="mt-3 space-y-2">
-            {months.map((m) => {
-              const v = num(m.net_profit);
-              return (
-                <li key={m.month} className="grid grid-cols-[4.5rem_1fr_6.5rem] items-center gap-3 text-sm">
-                  <span>{monthLabel(m.month)}</span>
-                  <span className="h-3 overflow-hidden rounded-full bg-parchment" aria-hidden><span className={clsx("block h-full rounded-full", v >= 0 ? "bg-emerald-600" : "bg-danger")} style={{ width: `${Math.max(2, (Math.abs(v) / biggest) * 100)}%` }} /></span>
-                  <span className={clsx("text-right font-medium", v < 0 && "text-danger")}>{signedUsd(v)}</span>
-                </li>
-              );
-            })}
-            {months.length === 0 && <li className="py-4 text-center text-ink-soft">No sales or expenses yet.</li>}
-          </ul>
-        </section>
       )}
 
       {teamRes && (
