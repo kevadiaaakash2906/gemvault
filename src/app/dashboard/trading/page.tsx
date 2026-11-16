@@ -15,6 +15,10 @@ import { getHiddenColumns } from "@/lib/column-prefs";
 export const metadata: Metadata = { title: "Trading" };
 const STATUSES = ["Not Sold", "Unpaid", "Partial", "Paid"];
 type SP = { q?: string; status?: string; page?: string };
+// The table scrolls inside its own box, so the header row stays at the top and Sr. No. stays at the left.
+const HEAD = "sticky top-0 z-20 bg-parchment";
+const HEAD_FIRST = "sticky left-0 top-0 z-30 bg-parchment shadow-[1px_0_0_var(--color-gold-soft)]";
+const CELL_FIRST = "sticky left-0 z-10 bg-white shadow-[1px_0_0_var(--color-gold-soft)] group-hover:bg-ivory";
 
 export default async function TradingPage({ searchParams }: { searchParams: Promise<SP> }) {
   const session = await requirePermission("trades.view");
@@ -60,7 +64,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     const c = s === "Paid" ? "bg-emerald-100 text-emerald-900" : s === "Partial" ? "bg-amber-100 text-amber-900" : s === "Unpaid" ? "bg-red-100 text-red-900" : "bg-parchment text-ink-soft";
     return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${c}`}>{s}</span>;
   };
-  const h = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{label}</th>;
+  const h = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${key === "sr_no" ? HEAD_FIRST : HEAD} ${right ? "text-right" : "text-left"}`}>{label}</th>;
 
   return (
     <div className="space-y-5">
@@ -80,10 +84,10 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
         <button className="min-h-11 self-end rounded-md bg-forest px-5 text-sm font-semibold text-ivory hover:bg-forest-deep">Apply</button>
       </form>
       {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load trades. Please refresh the page.</p>}
-      <div className="hidden overflow-x-auto rounded-md border border-gold-soft bg-white lg:block">
+      <div className="hidden max-h-[75dvh] overflow-auto rounded-md border border-gold-soft bg-white lg:block">
         <table data-table="trading" className="w-full text-xs">
           <caption className="sr-only">Trading</caption>
-          <thead className="bg-parchment"><tr>
+          <thead><tr>
             {h("sr_no", "Sr. No.")}{h("trade_date", "Date")}{h("item", "Item")}{owner && <>{h("vendor", "Vendor")}{h("purchase_price", "Purchase Price", true)}</>}{h("sale_price", "Sale Price", true)}{h("date_sold", "Date Sold")}{h("sold_to", "Sold To")}{h("memo", "Memo")}{h("memo_paid", "Memo Paid", true)}{h("memo_balance", "Memo Balance", true)}{h("payment_status", "Payment Status")}{owner && h("profit", "Profit/Loss", true)}{h("notes", "Notes")}
           </tr></thead>
           <tbody className="divide-y divide-gold-soft">
@@ -91,8 +95,8 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
               const c = costs.get(r.id);
               const profit = c && r.sale_price !== null ? num(r.sale_price) - num(c.purchase_price) : null;
               return (
-                <tr key={r.id} className="hover:bg-ivory">
-                  <td data-col="sr_no" className="px-2 py-2">{can(session.role, "trades.edit") ? <Link href={`/dashboard/trading/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link> : r.sr_no}</td>
+                <tr key={r.id} className="group hover:bg-ivory">
+                  <td data-col="sr_no" className={`px-2 py-2 ${CELL_FIRST}`}>{can(session.role, "trades.edit") ? <Link href={`/dashboard/trading/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link> : r.sr_no}</td>
                   <td data-col="trade_date" className="px-2 py-2 whitespace-nowrap">{fmtDate(r.trade_date)}</td>
                   <td data-col="item" className="px-2 py-2">{r.item}</td>
                   {owner && <><td data-col="vendor" className="px-2 py-2">{c?.vendor ?? "—"}</td><td data-col="purchase_price" className="px-2 py-2 text-right">{c ? usd.format(num(c.purchase_price)) : "—"}</td></>}
