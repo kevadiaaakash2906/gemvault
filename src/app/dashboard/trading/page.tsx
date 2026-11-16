@@ -64,7 +64,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     const c = s === "Paid" ? "bg-emerald-100 text-emerald-900" : s === "Partial" ? "bg-amber-100 text-amber-900" : s === "Unpaid" ? "bg-red-100 text-red-900" : "bg-parchment text-ink-soft";
     return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${c}`}>{s}</span>;
   };
-  const h = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${key === "sr_no" ? HEAD_FIRST : HEAD} ${right ? "text-right" : "text-left"}`}>{label}</th>;
+  const h = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-1.5 font-medium whitespace-nowrap ${key === "sr_no" ? HEAD_FIRST : HEAD} ${right ? "text-right" : "text-left"}`}>{label}</th>;
 
   return (
     <div className="space-y-5">
@@ -84,7 +84,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
         <button className="min-h-11 self-end rounded-md bg-forest px-5 text-sm font-semibold text-ivory hover:bg-forest-deep">Apply</button>
       </form>
       {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load trades. Please refresh the page.</p>}
-      <div className="hidden max-h-[75dvh] overflow-auto rounded-md border border-gold-soft bg-white lg:block">
+      <div className="hidden max-h-[calc(100dvh-2rem)] overflow-auto rounded-md border border-gold-soft bg-white lg:block">
         <table data-table="trading" className="w-full text-xs">
           <caption className="sr-only">Trading</caption>
           <thead><tr>
@@ -96,19 +96,19 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
               const profit = c && r.sale_price !== null ? num(r.sale_price) - num(c.purchase_price) : null;
               return (
                 <tr key={r.id} className="group hover:bg-ivory">
-                  <td data-col="sr_no" className={`px-2 py-2 ${CELL_FIRST}`}>{can(session.role, "trades.edit") ? <Link href={`/dashboard/trading/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link> : r.sr_no}</td>
-                  <td data-col="trade_date" className="px-2 py-2 whitespace-nowrap">{fmtDate(r.trade_date)}</td>
-                  <td data-col="item" className="px-2 py-2">{r.item}</td>
-                  {owner && <><td data-col="vendor" className="px-2 py-2">{c?.vendor ?? "—"}</td><td data-col="purchase_price" className="px-2 py-2 text-right">{c ? usd.format(num(c.purchase_price)) : "—"}</td></>}
-                  <td data-col="sale_price" className="px-2 py-2 text-right">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "—"}</td>
-                  <td data-col="date_sold" className="px-2 py-2 whitespace-nowrap">{fmtDate(r.date_sold)}</td>
-                  <td data-col="sold_to" className="px-2 py-2">{r.sold_to ?? "—"}</td>
-                  <td data-col="memo" className="px-2 py-2">{r.memo_id ? <Link href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"}</td>
-                  <td data-col="memo_paid" className="px-2 py-2 text-right">{r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"}</td>
-                  <td data-col="memo_balance" className="px-2 py-2 text-right">{r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"}</td>
-                  <td data-col="payment_status" className="px-2 py-2">{badge(r.payment_status)}</td>
-                  {owner && <td data-col="profit" className={`px-2 py-2 text-right ${profit !== null && profit < 0 ? "text-danger" : ""}`}>{profit !== null ? usd.format(profit) : "—"}</td>}
-                  <td data-col="notes" className="px-2 py-2">{r.notes ?? ""}</td>
+                  <td data-col="sr_no" className={`px-2 py-1.5 ${CELL_FIRST}`}>{can(session.role, "trades.edit") ? <Link href={`/dashboard/trading/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link> : r.sr_no}</td>
+                  <td data-col="trade_date" className="px-2 py-1.5 whitespace-nowrap">{fmtDate(r.trade_date)}</td>
+                  <td data-col="item" className="px-2 py-1.5">{r.item}</td>
+                  {owner && <><td data-col="vendor" className="px-2 py-1.5">{c?.vendor ?? "—"}</td><td data-col="purchase_price" className="px-2 py-1.5 text-right">{c ? usd.format(num(c.purchase_price)) : "—"}</td></>}
+                  <td data-col="sale_price" className="px-2 py-1.5 text-right">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "—"}</td>
+                  <td data-col="date_sold" className="px-2 py-1.5 whitespace-nowrap">{fmtDate(r.date_sold)}</td>
+                  <td data-col="sold_to" className="px-2 py-1.5">{r.sold_to ?? "—"}</td>
+                  <td data-col="memo" className="px-2 py-1.5">{r.memo_id ? <Link href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"}</td>
+                  <td data-col="memo_paid" className="px-2 py-1.5 text-right">{r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"}</td>
+                  <td data-col="memo_balance" className="px-2 py-1.5 text-right">{r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"}</td>
+                  <td data-col="payment_status" className="px-2 py-1.5">{badge(r.payment_status)}</td>
+                  {owner && <td data-col="profit" className={`px-2 py-1.5 text-right ${profit !== null && profit < 0 ? "text-danger" : ""}`}>{profit !== null ? usd.format(profit) : "—"}</td>}
+                  <td data-col="notes" className="px-2 py-1.5">{r.notes ?? ""}</td>
                 </tr>
               );
             })}
