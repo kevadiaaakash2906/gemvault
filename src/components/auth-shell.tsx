@@ -5,7 +5,7 @@ export function AuthShell({ title, intro, children }: { title: string; intro?: s
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
       <section className="relative hidden overflow-hidden bg-forest text-gold-soft lg:flex lg:flex-col lg:justify-between lg:p-14">
-        <Image src="/vinere-logo-white.png" alt="Vinere Jewellery" width={212} height={92} priority className="h-20 w-auto" />
+        <Image src="/vinere-logo-white.png" alt="Vinere Jewellery" width={212} height={92} priority className="h-20 w-auto self-start" />
         <GemMark className="absolute -right-24 top-1/2 size-[34rem] -translate-y-1/2 text-gold/60" />
         <p className="relative max-w-sm font-display text-2xl leading-snug text-ivory">
           Every stone, every sale, accounted for.
