@@ -53,7 +53,7 @@ export function Sidebar({ items, name, roleLabel }: { items: NavItem[]; name: st
   };
 
   const nav = (
-    <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 pb-2 [scrollbar-width:thin]">
+    <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-3 pb-2 sidebar-scroll">
       {sections.map((s, i) => (
         <div key={s.label || "top"} role="group" aria-label={s.label || "Overview"} className={clsx("space-y-0.5", i > 0 && "mt-3")}>
           {s.label && (
