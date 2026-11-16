@@ -16,6 +16,10 @@ export const metadata: Metadata = { title: "Orders" };
 const SORTS = ["sr_no", "order_date", "style_no", "sale_price", "date_sold"] as const;
 type SP = { q?: string; status?: string; type?: string; sort?: string; dir?: string; page?: string };
 const STATUSES = ["Not Sold", "Unpaid", "Partial", "Paid"];
+// The table scrolls inside its own box, so the header row stays at the top and Sr. No. stays at the left.
+const HEAD = "sticky top-0 z-20 bg-parchment";
+const HEAD_FIRST = "sticky left-0 top-0 z-30 bg-parchment shadow-[1px_0_0_var(--color-gold-soft)]";
+const CELL_FIRST = "sticky left-0 z-10 bg-white shadow-[1px_0_0_var(--color-gold-soft)] group-hover:bg-ivory";
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<SP> }) {
   const session = await requirePermission("orders.view");
@@ -73,7 +77,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const th = (k: string, label: string, right?: boolean) => {
     const nextDir = sort === k && dir === "asc" ? "desc" : "asc";
     return (
-      <th key={k} data-col={k} scope="col" aria-sort={sort === k ? (dir === "asc" ? "ascending" : "descending") : "none"} className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>
+      <th key={k} data-col={k} scope="col" aria-sort={sort === k ? (dir === "asc" ? "ascending" : "descending") : "none"} className={`px-2 py-2 font-medium whitespace-nowrap ${k === "sr_no" ? HEAD_FIRST : HEAD} ${right ? "text-right" : "text-left"}`}>
         <Link href={`/dashboard/orders${buildQuery({ ...base, sort: k, dir: nextDir })}`} className="inline-flex items-center gap-1 hover:text-gold-deep">
           {label}
           {sort === k && (dir === "asc" ? <ArrowUp className="size-3" aria-hidden /> : <ArrowDown className="size-3" aria-hidden />)}
@@ -81,7 +85,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       </th>
     );
   };
-  const plain = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${right ? "text-right" : "text-left"}`}>{label}</th>;
+  const plain = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-2 font-medium whitespace-nowrap ${HEAD} ${right ? "text-right" : "text-left"}`}>{label}</th>;
   const badge = (s: string) => {
     const c = s === "Paid" ? "bg-emerald-100 text-emerald-900" : s === "Partial" ? "bg-amber-100 text-amber-900" : s === "Unpaid" ? "bg-red-100 text-red-900" : "bg-parchment text-ink-soft";
     return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${c}`}>{s}</span>;
@@ -119,10 +123,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 
       {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load orders. Please refresh the page.</p>}
 
-      <div className="hidden overflow-x-auto rounded-md border border-gold-soft bg-white lg:block">
+      <div className="hidden max-h-[75dvh] overflow-auto rounded-md border border-gold-soft bg-white lg:block">
         <table data-table="orders" className="w-full text-xs">
           <caption className="sr-only">Orders</caption>
-          <thead className="bg-parchment">
+          <thead>
             <tr>
               {plain("photo", "Photo")}{th("sr_no", "Sr. No.")}{plain("customer", "Customer")}{th("style_no", "Style No.")}{plain("jewelry_type", "Jewelry Type")}{plain("diamond_shape", "Diamond Shape")}{th("order_date", "Date")}
               {plain("gross_wt", "Gross Wt", true)}{plain("dia_qty", "Dia Qty", true)}{plain("in_ct", "IN CT", true)}{plain("colour_stone", "Colour Stone", true)}{plain("net_wt", "Net Wt", true)}{plain("multiplier", "Multiplier", true)}{plain("pg_wt", "Pg Wt", true)}
@@ -134,14 +138,14 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             {(rows ?? []).map((r) => {
               const c = costs.get(r.id);
               return (
-                <tr key={r.id} className="hover:bg-ivory">
+                <tr key={r.id} className="group hover:bg-ivory">
                   <td data-col="photo" className="px-2 py-2">
                     {r.style_thumb_path && thumbUrls.get(r.style_thumb_path)
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={thumbUrls.get(r.style_thumb_path)} alt="" className="size-10 rounded object-cover" />
                       : <div className="size-10 rounded bg-parchment" aria-hidden />}
                   </td>
-                  <td data-col="sr_no" className="px-2 py-2"><Link href={`/dashboard/orders/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link></td>
+                  <td data-col="sr_no" className={`px-2 py-2 ${CELL_FIRST}`}><Link href={`/dashboard/orders/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link></td>
                   <td data-col="customer" className="px-2 py-2">{r.customer ?? "—"}</td>
                   <td data-col="style_no" className="px-2 py-2 font-mono">{r.style_no}</td>
                   <td data-col="jewelry_type" className="px-2 py-2">{r.jewelry_type ?? "—"}</td>
