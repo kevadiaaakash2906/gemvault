@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, pickSort, usd } from "@/lib/ledger";
 import { fmtPct, marginPct, monthLabel } from "@/lib/reports";
 import { Tile, TileEmpty } from "@/components/tiles";
+import { SalesProfitChart, TopBars, shortMonth } from "@/components/charts";
 
 export const metadata: Metadata = { title: "Profit" };
 const VIEWS = ["piece", "month", "buyer"] as const;
@@ -37,11 +38,12 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
     pieceQuery = query.order("date_sold", { ascending: false, nullsFirst: false }).order("sr_no", { ascending: false }).range(from, from + PAGE_SIZE - 1);
   }
   const buyerQuery = view === "buyer" ? supabase.from("buyer_profit").select("*").order("profit", { ascending: false }).order("buyer") : null;
-  // Month totals feed the summary cards on every tab.
-  const [{ data: monthRows, error: monthError }, pieceRes, buyerRes] = await Promise.all([
+  // Month totals feed the summary cards and the chart on every tab; the top five buyers by sales feed the second chart.
+  const [{ data: monthRows, error: monthError }, pieceRes, buyerRes, topRes] = await Promise.all([
     supabase.from("monthly_profit").select("*").order("month", { ascending: false, nullsFirst: false }),
     pieceQuery,
     buyerQuery,
+    supabase.from("buyer_profit").select("buyer_id,buyer,sales,profit").order("sales", { ascending: false }).limit(5),
   ]);
   const months = monthRows ?? [];
   const sum = (k: string) => months.reduce((n, m) => n + num((m as Record<string, unknown>)[k]), 0);
@@ -58,6 +60,10 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
     { label: "Net profit", value: usd.format(net), tone: net < 0 ? "text-danger" : "" },
     { label: "Margin on costed sales", value: fmtPct(marginPct(orderProfit + tradeProfit, sum("costed_sales"))), tone: "" },
   ];
+  const points = months.filter((m) => m.month).slice(0, 12).reverse()
+    .map((m) => ({ label: shortMonth(m.month), sales: num(m.sales), profit: num(m.net_profit) }));
+  const topBuyers = (topRes.data ?? []).filter((b) => num(b.sales) > 0)
+    .map((b) => ({ key: String(b.buyer_id), name: String(b.buyer), value: num(b.sales), note: `Profit ${usd.format(num(b.profit))}` }));
 
   const pieces: Record<string, unknown>[] = pieceRes?.data ?? [];
   const buyers: Record<string, unknown>[] = buyerRes?.data ?? [];
@@ -86,6 +92,19 @@ export default async function ProfitPage({ searchParams }: { searchParams: Promi
         </p>
       )}
       {(monthError || viewError) && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load the report. Please refresh the page.</p>}
+
+      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+        <section aria-labelledby="chart-months" className="rounded-md border border-gold-soft bg-white p-4 sm:p-5">
+          <h2 id="chart-months" className="font-display text-xl text-forest">Sales vs net profit</h2>
+          <p className="text-sm text-ink-soft">By month, last {points.length || 12} months. Net profit = order + trading profit − expenses.</p>
+          <SalesProfitChart data={points} label="Sales and net profit by month" />
+        </section>
+        <section aria-labelledby="chart-buyers" className="rounded-md border border-gold-soft bg-white p-4 sm:p-5">
+          <h2 id="chart-buyers" className="font-display text-xl text-forest">Top buyers</h2>
+          <p className="text-sm text-ink-soft">The five biggest by sales</p>
+          <TopBars rows={topBuyers} />
+        </section>
+      </div>
 
       <nav aria-label="Report view" className="flex flex-wrap gap-2">
         {VIEWS.map((v) => (
