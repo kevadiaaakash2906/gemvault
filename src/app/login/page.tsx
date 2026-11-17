@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Sign in" };
 
 export default function LoginPage() {
   return (
-    <AuthShell title="Sign in" intro="Use the email and password your owner set up for you.">
+    <AuthShell title="Sign in">
       <LoginForm />
       <p className="mt-6 text-sm">
         <Link href="/forgot-password" className="font-medium text-gold-deep underline underline-offset-4">
