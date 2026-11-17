@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Check, X } from "lucide-react";
 import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
@@ -26,6 +27,7 @@ export default async function MemoPage({ params }: { params: Promise<{ id: strin
   ]);
   if (!m) notFound();
   const balance = num(m.balance);
+  const received = (pays ?? []).filter((p) => !p.voided_at);
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -60,16 +62,24 @@ export default async function MemoPage({ params }: { params: Promise<{ id: strin
         </ul>
       </section>
 
-      <section aria-labelledby="payments" className="space-y-4 rounded-md border border-gold-soft bg-white p-5">
-        <h2 id="payments" className="font-display text-xl text-forest">Payments</h2>
-        {(pays ?? []).length === 0 ? <p className="text-ink-soft">No payments yet.</p> : (
-          <ul className="divide-y divide-gold-soft">
+      <section aria-labelledby="payments" className="space-y-5 rounded-xl border border-gold-soft bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="payments" className="font-display text-xl text-forest">Payments</h2>
+          <p className="text-sm text-ink-soft">{received.length} received · {usd.format(num(m.total_paid))}</p>
+        </div>
+        {(pays ?? []).length === 0 ? <p className="rounded-lg border border-dashed border-gold-soft px-4 py-6 text-center text-ink-soft">No payments yet.</p> : (
+          <ul className="divide-y divide-gold-soft overflow-hidden rounded-lg border border-gold-soft">
             {(pays ?? []).map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
-                <div className={p.voided_at ? "text-ink-soft line-through" : ""}>
-                  <p className="font-medium">{usd.format(num(p.amount))}</p><p className="text-sm">{fmtDate(p.paid_on)}</p>
+              <li key={p.id} className="flex flex-wrap items-center gap-3 p-3 sm:px-4">
+                <span className={`grid size-10 shrink-0 place-items-center rounded-full ${p.voided_at ? "bg-parchment text-ink-soft" : "bg-emerald-100 text-emerald-800"}`} aria-hidden>
+                  {p.voided_at ? <X className="size-5" /> : <Check className="size-5" />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`font-semibold ${p.voided_at ? "text-ink-soft line-through" : ""}`}>{usd.format(num(p.amount))}</p>
+                  <p className="text-sm text-ink-soft">{fmtDate(p.paid_on)}{p.voided_at ? ` · Cancelled: ${p.void_reason}` : ""}</p>
                 </div>
-                {p.voided_at ? <p className="text-sm text-danger">Cancelled: {p.void_reason}</p> : can(session.role, "payments.void") && <div className="print:hidden"><VoidPayment paymentId={p.id} /></div>}
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${p.voided_at ? "bg-red-50 text-danger" : "bg-emerald-100 text-emerald-800"}`}>{p.voided_at ? "Cancelled" : "Received"}</span>
+                {!p.voided_at && can(session.role, "payments.void") && <div className="print:hidden"><VoidPayment paymentId={p.id} /></div>}
               </li>
             ))}
           </ul>
@@ -81,6 +91,7 @@ export default async function MemoPage({ params }: { params: Promise<{ id: strin
         <div className="print:hidden"><DeletePermanently kind="memo" id={id} title="Delete this memo permanently" redirectTo="/dashboard/memos"
           blocked={num(m.pieces) > 0 ? `This memo still has ${num(m.pieces)} ${num(m.pieces) === 1 ? "piece" : "pieces"} on it. Return ${num(m.pieces) === 1 ? "it" : "them"} first (open the piece, then Return this piece), and then the empty memo can be deleted.` : undefined}
           lines={["The memo, its payments and its return records are removed for good.", "Only an empty memo can be deleted, so no sale is lost.", "A full copy is kept in the audit log."]} /></div>
-      )}    </div>
+      )}
+    </div>
   );
 }
