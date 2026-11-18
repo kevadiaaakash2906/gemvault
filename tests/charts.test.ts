@@ -13,7 +13,7 @@ describe("charts", () => {
       data: [{ label: "Aug ’26", sales: 2400, profit: 441.27 }, { label: "Sep ’26", sales: 3300, profit: -50 }],
     }));
     expect(html).toContain("Aug ’26");
-    expect(html.match(/<rect/g)).toHaveLength(4);
+    expect(html.match(/<rect/g)).toHaveLength(8);   // two bars per month, drawn once for phones and once for wider screens
     expect(html).toContain("fill-danger");
     expect(html).toContain("fill-forest");
   });
