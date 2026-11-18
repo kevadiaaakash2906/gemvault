@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import clsx from "clsx";
-import { ArrowRight, PiggyBank, Plus, ShoppingBag, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, ArrowUpRight, PiggyBank, Plus, ShoppingBag, TrendingDown, TrendingUp } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +13,7 @@ import { ageTone, daysWaiting, waitingLabel } from "@/lib/reports";
 
 export const metadata: Metadata = { title: "Overview" };
 
-const card = "rounded-xl border border-gold-soft bg-white p-5 shadow-sm";
+const card = "min-w-0 rounded-xl border border-gold-soft bg-white p-5 shadow-sm";
 const linkCls = "inline-flex min-h-11 items-center gap-1 text-sm font-medium text-forest underline underline-offset-4";
 const initial = (s: unknown) => (String(s ?? "?").trim()[0] ?? "?").toUpperCase();
 
@@ -34,15 +34,15 @@ function Delta({ value }: { value: number | null }) {
 
 function Stat({ icon, label, value, sub, delta, tone }: { icon: React.ReactNode; label: string; value: string; sub: string; delta: number | null; tone?: "bad" }) {
   return (
-    <div className={clsx(card, "flex flex-col justify-between gap-4")}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="grid size-10 place-items-center rounded-full bg-parchment text-forest" aria-hidden>{icon}</span>
+    <div className="flex min-w-0 flex-col justify-between gap-3 rounded-xl border border-gold-soft bg-white p-4 shadow-sm sm:gap-4 sm:p-5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="grid size-8 place-items-center rounded-full bg-parchment text-forest sm:size-10" aria-hidden>{icon}</span>
         <Delta value={delta} />
       </div>
       <div>
         <p className="text-sm text-ink-soft">{label}</p>
-        <p className={clsx("font-display text-3xl [overflow-wrap:anywhere]", tone === "bad" ? "text-danger" : "text-forest")}>{value}</p>
-        <p className="text-xs text-ink-soft">{sub}</p>
+        <p className={clsx("font-display text-xl [overflow-wrap:anywhere] sm:text-3xl", tone === "bad" ? "text-danger" : "text-forest")}>{value}</p>
+        <p className="hidden text-xs text-ink-soft sm:block">{sub}</p>
       </div>
     </div>
   );
@@ -140,31 +140,36 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       )}
 
       {(showMoney || latest) && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {showMoney && (
-            <section aria-labelledby="money" className="relative overflow-hidden rounded-xl bg-forest p-6 text-ivory shadow-sm sm:col-span-2">
-              <GemMark className="pointer-events-none absolute -right-10 -top-10 size-56 text-gold/25" />
+            <section aria-labelledby="money" className="relative col-span-2 overflow-hidden rounded-2xl bg-linear-to-br from-forest to-forest-deep p-5 text-ivory shadow-sm sm:p-6">
+              <GemMark className="pointer-events-none absolute -bottom-14 -right-10 size-48 text-gold/10" />
               <div className="relative">
-                <h2 id="money" className="text-xs font-semibold uppercase tracking-wider text-gold-soft">Still owed to you</h2>
-                <p className="mt-1 font-display text-5xl [overflow-wrap:anywhere]">{usd.format(owed)}</p>
-                <p className="mt-1 text-sm text-gold-soft">by {buyersOwing} {buyersOwing === 1 ? "buyer" : "buyers"}</p>
-                <div className="mt-6">
-                  <div className="flex justify-between gap-3 text-sm">
-                    <span>Collected {usd.format(paid)}</span>
-                    <span className="text-gold-soft">of {usd.format(billed)} · {percentCollected}%</span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 id="money" className="text-xs font-semibold uppercase tracking-wider text-gold-soft">Still owed to you</h2>
+                    <p className="mt-2 font-display text-4xl [overflow-wrap:anywhere] sm:text-5xl">{usd.format(owed)}</p>
                   </div>
-                  <div role="progressbar" aria-label="Share of billed amount collected" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentCollected} className="mt-2 h-2.5 overflow-hidden rounded-full bg-forest-deep">
+                  <Link href="/dashboard/receivables" aria-label="Who owes me" title="Who owes me" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10 text-gold-soft transition-colors hover:bg-white/20 hover:text-ivory"><ArrowUpRight className="size-5" aria-hidden /></Link>
+                </div>
+                <p className="mt-3 inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-gold-soft">{buyersOwing} {buyersOwing === 1 ? "buyer owes" : "buyers owe"} you</p>
+                <div className="mt-5">
+                  <div role="progressbar" aria-label="Share of billed amount collected" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentCollected} className="h-2 overflow-hidden rounded-full bg-white/10">
                     <div className="bar-grow h-full rounded-full bg-gold" style={{ width: `${percentCollected}%` }} />
                   </div>
+                  <p className="mt-2 text-xs text-gold-soft">{percentCollected}% collected</p>
                 </div>
-                <Link href="/dashboard/receivables" className="mt-5 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-gold-soft underline underline-offset-4 hover:text-ivory">Who owes me <ArrowRight className="size-4" aria-hidden /></Link>
+                <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+                  <div><dt className="text-xs text-gold-soft">Billed</dt><dd className="font-semibold">{usd.format(billed)}</dd></div>
+                  <div><dt className="text-xs text-gold-soft">Collected</dt><dd className="font-semibold">{usd.format(paid)}</dd></div>
+                </dl>
               </div>
             </section>
           )}
           {latest && (
             <>
-              <Stat icon={<ShoppingBag className="size-5" />} label={`Sales in ${latest.label}`} value={usd.format(latest.sales)} sub="latest month with activity" delta={change(latest.sales, before?.sales)} />
-              <Stat icon={<PiggyBank className="size-5" />} label={`Net profit in ${latest.label}`} value={usd.format(latest.profit)} sub="after expenses" delta={change(latest.profit, before?.profit)} tone={latest.profit < 0 ? "bad" : undefined} />
+              <Stat icon={<ShoppingBag className="size-4 sm:size-5" />} label={`Sales in ${latest.label}`} value={usd.format(latest.sales)} sub="latest month with activity" delta={change(latest.sales, before?.sales)} />
+              <Stat icon={<PiggyBank className="size-4 sm:size-5" />} label={`Net profit in ${latest.label}`} value={usd.format(latest.profit)} sub="after expenses" delta={change(latest.profit, before?.profit)} tone={latest.profit < 0 ? "bad" : undefined} />
             </>
           )}
         </div>
