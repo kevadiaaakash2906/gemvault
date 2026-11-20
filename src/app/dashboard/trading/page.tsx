@@ -4,10 +4,9 @@ import { Download, Plus } from "lucide-react";
 import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { PAGE_SIZE, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
+import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
 import { Tile, TileEmpty, type Fact } from "@/components/tiles";
 import { KpiStrip, type Kpi } from "@/components/kpi";
-import { Pagination } from "@/components/pagination";
 import { signedUsd } from "@/lib/reports";
 import { ColumnPicker } from "@/components/column-picker";
 import { COLUMNS } from "@/lib/columns";
@@ -16,6 +15,7 @@ import { getHiddenColumns } from "@/lib/column-prefs";
 export const metadata: Metadata = { title: "Trading" };
 const STATUSES = ["Not Sold", "Unpaid", "Partial", "Paid"];
 type SP = { q?: string; status?: string; page?: string };
+type StockRow = { id: string; trade_costs: { purchase_price: number } | { purchase_price: number }[] | null };
 // The table scrolls inside its own box, so the header row stays at the top and Sr. No. stays at the left.
 const HEAD = "sticky top-0 z-20 bg-parchment";
 const HEAD_FIRST = "sticky left-0 top-0 z-30 bg-parchment shadow-[1px_0_0_var(--color-gold-soft)]";
@@ -30,6 +30,8 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
   const status = STATUSES.includes(sp.status ?? "") ? sp.status : undefined;
   const supabase = await createClient();
   const kpiRequest = Promise.resolve(supabase.from("trades_kpi").select("*").maybeSingle());   // starts now, so it runs alongside the list
+  // Unsold pieces with their purchase price (a returned piece is unsold again, so it is included).
+  const stockRequest = Promise.resolve(supabase.from("trades").select("id,trade_costs(purchase_price)").is("sale_price", null).limit(5000));
 
   const hiddenRequest = getHiddenColumns(supabase, "trading");   // the person's saved column choices, fetched alongside the list
   let query = supabase.from("trade_overview").select("*", { count: "exact" });
@@ -43,7 +45,13 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     const { data } = await supabase.from("trade_costs").select("*").in("trade_id", rows.map((r) => r.id));
     (data ?? []).forEach((c) => costs.set(c.trade_id, c));
   }
-  const { data: k } = await kpiRequest;
+  const [{ data: k }, { data: unsold }] = await Promise.all([kpiRequest, stockRequest]);
+  const stockRows = (unsold ?? []) as unknown as StockRow[];
+  const stockCount = stockRows.length;
+  const stockValue = stockRows.reduce((sum, r) => {
+    const c = Array.isArray(r.trade_costs) ? r.trade_costs[0] : r.trade_costs;
+    return sum + num(c?.purchase_price);
+  }, 0);
   const cards: Kpi[] = !k ? [] : owner ? [
     { label: "Total trades", value: String(num(k.total_trades)), sub: "buy & sell records" },
     { label: "Total invested", value: usd.format(num(k.invested)), sub: "capital deployed" },
@@ -51,11 +59,14 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
     { label: "Net P/L", value: signedUsd(num(k.net_pl)), sub: "closed trades only", tone: num(k.net_pl) < 0 ? "bad" : "good" },
     { label: "Collected", value: usd.format(num(k.collected)), sub: "payments received" },
     { label: "Outstanding", value: usd.format(num(k.outstanding)), sub: "balance due across all", tone: "warn" },
+    { label: "Stock on hand", value: String(stockCount), sub: "pieces bought, not sold yet" },
+    { label: "Stock value", value: usd.format(stockValue), sub: "unsold pieces at purchase price" },
   ] : [
     { label: "Total trades", value: String(num(k.total_trades)), sub: "buy & sell records" },
     { label: "Total sales", value: usd.format(num(k.sales)), sub: "revenue from sold items" },
     { label: "Collected", value: usd.format(num(k.collected)), sub: "payments received" },
     { label: "Outstanding", value: usd.format(num(k.outstanding)), sub: "balance due across all", tone: "warn" },
+    { label: "Stock on hand", value: String(stockCount), sub: "pieces bought, not sold yet" },
   ];
   const hidden = await hiddenRequest;
   const total = count ?? 0;
@@ -138,7 +149,13 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
         })}
         {(rows ?? []).length === 0 && !error && <TileEmpty>No items yet.</TileEmpty>}
       </ul>
-      <Pagination basePath="/dashboard/trading" params={base} page={page} pages={pages} />
+      {pages > 1 && (
+        <nav aria-label="Pages" className="flex items-center justify-between text-sm"><span className="text-ink-soft">Page {page} of {pages}</span>
+          <div className="flex gap-2">
+            {page > 1 && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/trading${buildQuery({ ...base, page: String(page - 1) })}`}>Previous</Link>}
+            {page < pages && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/trading${buildQuery({ ...base, page: String(page + 1) })}`}>Next</Link>}
+          </div></nav>
+      )}
     </div>
   );
 }
