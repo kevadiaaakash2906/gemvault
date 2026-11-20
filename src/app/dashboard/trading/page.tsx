@@ -4,9 +4,10 @@ import { Download, Plus } from "lucide-react";
 import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
+import { PAGE_SIZE, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
 import { Tile, TileEmpty, type Fact } from "@/components/tiles";
 import { KpiStrip, type Kpi } from "@/components/kpi";
+import { Pagination } from "@/components/pagination";
 import { signedUsd } from "@/lib/reports";
 import { ColumnPicker } from "@/components/column-picker";
 import { COLUMNS } from "@/lib/columns";
@@ -137,13 +138,7 @@ export default async function TradingPage({ searchParams }: { searchParams: Prom
         })}
         {(rows ?? []).length === 0 && !error && <TileEmpty>No items yet.</TileEmpty>}
       </ul>
-      {pages > 1 && (
-        <nav aria-label="Pages" className="flex items-center justify-between text-sm"><span className="text-ink-soft">Page {page} of {pages}</span>
-          <div className="flex gap-2">
-            {page > 1 && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/trading${buildQuery({ ...base, page: String(page - 1) })}`}>Previous</Link>}
-            {page < pages && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/trading${buildQuery({ ...base, page: String(page + 1) })}`}>Next</Link>}
-          </div></nav>
-      )}
+      <Pagination basePath="/dashboard/trading" params={base} page={page} pages={pages} />
     </div>
   );
 }
