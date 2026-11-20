@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, pickSort, usd } from "@/lib/ledger";
 import { AMBER_AFTER_DAYS, RED_AFTER_DAYS, ageTone, daysWaiting, waitingLabel, type AgeTone } from "@/lib/reports";
 import { Tile, TileEmpty } from "@/components/tiles";
+import { Pagination } from "@/components/pagination";
 
 export const metadata: Metadata = { title: "Who owes me" };
 const SORTS = ["balance", "oldest", "buyer"] as const;
@@ -101,13 +102,7 @@ export default async function ReceivablesPage({ searchParams }: { searchParams: 
         {(rows ?? []).length === 0 && !error && <TileEmpty>{show === "owing" && !q ? "Nobody owes you anything right now." : "No buyers match."}</TileEmpty>}
       </ul>
 
-      {pages > 1 && (
-        <nav aria-label="Pages" className="flex items-center justify-between text-sm"><span className="text-ink-soft">Page {page} of {pages}</span>
-          <div className="flex gap-2">
-            {page > 1 && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/receivables${buildQuery({ ...base, page: String(page - 1) })}`}>Previous</Link>}
-            {page < pages && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/receivables${buildQuery({ ...base, page: String(page + 1) })}`}>Next</Link>}
-          </div></nav>
-      )}
+      <Pagination basePath="/dashboard/receivables" params={base} page={page} pages={pages} />
       <p className="text-sm text-ink-soft">Payments are recorded against a whole memo, so a part-paid memo counts as waiting from the date of its earliest sale. Amber: {AMBER_AFTER_DAYS}+ days. Red: {RED_AFTER_DAYS}+ days.</p>
     </div>
   );
