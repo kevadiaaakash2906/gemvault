@@ -4,9 +4,10 @@ import { Download, Plus } from "lucide-react";
 import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
+import { PAGE_SIZE, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
 import { Tile, TileEmpty } from "@/components/tiles";
 import { KpiStrip, type Kpi } from "@/components/kpi";
+import { Pagination } from "@/components/pagination";
 
 export const metadata: Metadata = { title: "Expenses" };
 
@@ -79,13 +80,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         ))}
         {(rows ?? []).length === 0 && <TileEmpty>No expenses yet.</TileEmpty>}
       </ul>
-      {pages > 1 && (
-        <nav aria-label="Pages" className="flex items-center justify-between text-sm"><span className="text-ink-soft">Page {page} of {pages}</span>
-          <div className="flex gap-2">
-            {page > 1 && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/expenses${buildQuery({ ...base, page: String(page - 1) })}`}>Previous</Link>}
-            {page < pages && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/expenses${buildQuery({ ...base, page: String(page + 1) })}`}>Next</Link>}
-          </div></nav>
-      )}
+      <Pagination basePath="/dashboard/expenses" params={base} page={page} pages={pages} />
     </div>
   );
 }
