@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, inr, num, parsePage, pickSort, usd } from "@/lib/ledger";
 import { Tile, TileEmpty, type Fact } from "@/components/tiles";
 import { KpiStrip, type Kpi } from "@/components/kpi";
+import { Pagination } from "@/components/pagination";
 import { signedUsd } from "@/lib/reports";
 import { ColumnPicker } from "@/components/column-picker";
 import { COLUMNS } from "@/lib/columns";
@@ -210,15 +211,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         {(rows ?? []).length === 0 && !error && <TileEmpty>No orders match.</TileEmpty>}
       </ul>
 
-      {pages > 1 && (
-        <nav aria-label="Pages" className="flex items-center justify-between text-sm">
-          <span className="text-ink-soft">Page {page} of {pages}</span>
-          <div className="flex gap-2">
-            {page > 1 && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/orders${buildQuery({ ...base, page: String(page - 1) })}`}>Previous</Link>}
-            {page < pages && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/orders${buildQuery({ ...base, page: String(page + 1) })}`}>Next</Link>}
-          </div>
-        </nav>
-      )}
+      <Pagination basePath="/dashboard/orders" params={base} page={page} pages={pages} />
     </div>
   );
 }
