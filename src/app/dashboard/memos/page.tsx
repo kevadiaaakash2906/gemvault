@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, num, parsePage, usd } from "@/lib/ledger";
 import { Tile, TileEmpty } from "@/components/tiles";
+import { Pagination } from "@/components/pagination";
 
 export const metadata: Metadata = { title: "Memos" };
 const STATUSES = ["Unpaid", "Partial", "Paid"];
@@ -63,13 +64,7 @@ export default async function MemosPage({ searchParams }: { searchParams: Promis
         ))}
         {(rows ?? []).length === 0 && <TileEmpty>No memos yet.</TileEmpty>}
       </ul>
-      {pages > 1 && (
-        <nav aria-label="Pages" className="flex items-center justify-between text-sm"><span className="text-ink-soft">Page {page} of {pages}</span>
-          <div className="flex gap-2">
-            {page > 1 && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/memos${buildQuery({ ...base, page: String(page - 1) })}`}>Previous</Link>}
-            {page < pages && <Link className="min-h-11 rounded-md border border-gold-soft bg-white px-4 py-2.5" href={`/dashboard/memos${buildQuery({ ...base, page: String(page + 1) })}`}>Next</Link>}
-          </div></nav>
-      )}
+      <Pagination basePath="/dashboard/memos" params={base} page={page} pages={pages} />
     </div>
   );
 }
