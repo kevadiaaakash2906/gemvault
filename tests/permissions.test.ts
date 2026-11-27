@@ -15,14 +15,14 @@ describe("the three roles", () => {
     expect(can("staff", "costs.view")).toBe(true);
     expect(can("staff", "team.manage")).toBe(false);
   });
-  it("a seller sees what staff see except Rates, records sales on orders, edits Trading, and can delete memos and returns", () => {
+  it("a seller sees what staff see except Rates, records sales on orders, marks pieces out, edits Trading, and can delete memos and returns", () => {
     expect(allowed("seller")).toEqual([
-      "buyers.view", "costs.view", "dashboard.view", "expenses.view", "memos.delete", "memos.view", "money.send", "money.view", "orders.sale", "orders.view",
+      "buyers.view", "costs.view", "dashboard.view", "expenses.view", "memos.delete", "memos.view", "money.send", "money.view", "orders.hold", "orders.sale", "orders.view",
       "receivables.view", "reports.profit", "returns.delete", "returns.view", "styles.view", "trades.edit", "trades.view",
     ].sort());
     expect(can("seller", "settings.edit")).toBe(false);   // no Rates tab
     expect(can("seller", "team.manage")).toBe(false);
-    for (const p of ["orders.edit", "orders.hold", "buyers.manage", "payments.record", "payments.void", "expenses.manage", "records.delete", "returns.record"] as const) {
+    for (const p of ["orders.edit", "buyers.manage", "payments.record", "payments.void", "expenses.manage", "records.delete", "returns.record"] as const) {
       expect(can("seller", p)).toBe(false);
     }
   });
