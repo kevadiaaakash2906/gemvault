@@ -10,11 +10,12 @@ import { KpiStrip, type Kpi } from "@/components/kpi";
 import { Pagination } from "@/components/pagination";
 import { signedUsd } from "@/lib/reports";
 import { ColumnPicker } from "@/components/column-picker";
+import { OrderFilters } from "@/components/order-filters";
 import { COLUMNS } from "@/lib/columns";
 import { getHiddenColumns } from "@/lib/column-prefs";
 
 export const metadata: Metadata = { title: "Orders" };
-const SORTS = ["sr_no", "order_date", "style_no", "sale_price", "date_sold"] as const;
+const SORTS = ["sr_no", "order_date", "style_no", "in_ct", "sale_price", "date_sold"] as const;
 type SP = { q?: string; status?: string; type?: string; sort?: string; dir?: string; page?: string };
 const STATUSES = ["Not Sold", "Unpaid", "Partial", "Paid"];
 // The table scrolls inside its own box, so the header row stays at the top and Sr. No. stays at the left.
@@ -110,17 +111,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 
       {cards.length > 0 && <KpiStrip cards={cards} label="Orders summary" />}
 
-      <form method="get" className="grid gap-3 rounded-md border border-gold-soft bg-white p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_auto]">
-        <div><label htmlFor="q" className="block text-sm font-medium">Search</label>
-          <input id="q" name="q" defaultValue={q} placeholder="Style no, customer, sold to, memo" className="mt-1 min-h-11 w-full rounded-md border border-gold-soft px-3" /></div>
-        <div><label htmlFor="status" className="block text-sm font-medium">Payment status</label>
-          <select id="status" name="status" defaultValue={status ?? ""} className="mt-1 min-h-11 w-full rounded-md border border-gold-soft bg-white px-3">
-            <option value="">All</option>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></div>
-        <div><label htmlFor="type" className="block text-sm font-medium">Jewelry type</label>
-          <select id="type" name="type" defaultValue={sp.type ?? ""} className="mt-1 min-h-11 w-full rounded-md border border-gold-soft bg-white px-3">
-            <option value="">All</option>{typeList.map((t) => <option key={t}>{t}</option>)}</select></div>
-        <button className="min-h-11 self-end rounded-md bg-forest px-5 text-sm font-semibold text-ivory hover:bg-forest-deep">Apply</button>
-      </form>
+      <OrderFilters q={q} status={status} type={sp.type} statuses={STATUSES} types={typeList} sort={sp.sort} dir={sp.dir} />
 
       {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load orders. Please refresh the page.</p>}
 
@@ -130,7 +121,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           <thead>
             <tr>
               {plain("photo", "Photo")}{th("sr_no", "Sr. No.")}{plain("customer", "Customer")}{th("style_no", "Style No.")}{plain("jewelry_type", "Jewelry Type")}{plain("diamond_shape", "Diamond Shape")}{th("order_date", "Date")}
-              {plain("gross_wt", "Gross Wt", true)}{plain("dia_qty", "Dia Qty", true)}{plain("in_ct", "IN CT", true)}{plain("colour_stone", "Colour Stone", true)}{plain("net_wt", "Net Wt", true)}{plain("multiplier", "Multiplier", true)}{plain("pg_wt", "Pg Wt", true)}
+              {plain("gross_wt", "Gross Wt", true)}{plain("dia_qty", "Dia Qty", true)}{th("in_ct", "IN CT", true)}{plain("colour_stone", "Colour Stone", true)}{plain("net_wt", "Net Wt", true)}{plain("multiplier", "Multiplier", true)}{plain("pg_wt", "Pg Wt", true)}
               {owner && <>{plain("gold_amount", "Gold Amount", true)}{plain("diam_amount", "Diam Amount", true)}{plain("l_charges", "L Charges", true)}{plain("labor_amount", "Labor Amount", true)}{plain("sub_total", "Sub Total", true)}{plain("usd_cost", "$", true)}</>}
               {plain("sold_to", "Sold To")}{th("sale_price", "Sale Price", true)}{th("date_sold", "Date Sold")}{plain("memo", "Memo")}{plain("memo_paid", "Memo Paid", true)}{plain("memo_balance", "Memo Balance", true)}{plain("payment_status", "Payment Status")}
             </tr>
