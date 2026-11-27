@@ -35,6 +35,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const supabase = await createClient();
   const kpiRequest = Promise.resolve(supabase.from("orders_kpi").select("*").maybeSingle());   // starts now, so it runs alongside the list
   const stockRequest = Promise.resolve(supabase.rpc("live_stock_value"));   // stock at cost, re-priced at today's rates
+  const typesRequest = Promise.resolve(supabase.from("orders").select("jewelry_type").not("jewelry_type", "is", null).limit(2000));   // also alongside the list
 
   const hiddenRequest = getHiddenColumns(supabase, "orders");   // the person's saved column choices, fetched alongside the list
   let query = supabase.from("order_overview").select("*", { count: "exact" });
@@ -42,9 +43,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   if (sp.type) query = query.eq("jewelry_type", sp.type);
   if (q) query = query.or(`style_no.ilike.%${q}%,customer.ilike.%${q}%,sold_to.ilike.%${q}%,memo_no.ilike.%${q}%`);
   const from = (page - 1) * PAGE_SIZE;
-  const { data: rows, count, error } = await query.order(sort, { ascending: dir === "asc", nullsFirst: false }).order("id").range(from, from + PAGE_SIZE - 1);
-
-  const { data: types } = await supabase.from("orders").select("jewelry_type").not("jewelry_type", "is", null).limit(2000);
+  const [{ data: rows, count, error }, { data: types }] = await Promise.all([
+    Promise.resolve(query.order(sort, { ascending: dir === "asc", nullsFirst: false }).order("id").range(from, from + PAGE_SIZE - 1)),
+    typesRequest,
+  ]);
   const typeList = [...new Set((types ?? []).map((t) => t.jewelry_type as string))].sort();
 
   const costs = new Map<string, Record<string, number>>();
