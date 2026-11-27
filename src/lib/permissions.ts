@@ -9,7 +9,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 /** What each role may do. The database enforces the same rules, so hiding a button is never the only protection. */
 export const PERMISSIONS = {
-  // Owner: everything. Staff: everything except Team. Seller: sees what staff see (except Rates), records sales on orders, and adds and edits Trading.
+  // Owner: everything. Staff: everything except Team. Seller: sees what staff see (except Rates), records sales on orders, marks pieces out with customers, and adds and edits Trading.
   "team.manage": ["owner"],
   "settings.edit": ["owner", "staff"],   // the Rates tab
   "audit.view": ["owner"],
@@ -20,7 +20,7 @@ export const PERMISSIONS = {
   "styles.delete": ["owner", "staff"],
   "orders.view": ["owner", "staff", "seller"],
   "orders.edit": ["owner", "staff"],
-  "orders.hold": ["owner", "staff"],   // mark a piece as out with a customer (not sold)
+  "orders.hold": ["owner", "staff", "seller"],   // mark a piece as out with a customer (not sold)
   "orders.sale": ["owner", "staff", "seller"],   // Sold To, Memo, Sale Price, Date Sold on an existing order
   "trades.view": ["owner", "staff", "seller"],
   "trades.edit": ["owner", "staff", "seller"],
