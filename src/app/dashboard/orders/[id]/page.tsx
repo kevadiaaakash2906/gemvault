@@ -65,7 +65,7 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
   );
 }
 
-/** What a seller sees: the order's details to read, and the sale to fill in. */
+/** What a seller sees: the order's details to read, the sale to fill in, and the "out with a customer" panel for an unsold piece. */
 async function SaleOnlyPage({ id, role }: { id: string; role: Role }) {
   if (!can(role, "orders.sale")) notFound();
   const supabase = await createClient();
@@ -77,6 +77,9 @@ async function SaleOnlyPage({ id, role }: { id: string; role: Role }) {
   ]);
   if (!o) notFound();
   const initialMemo = o.memo_no ? await getMemoPreview(supabase, s(o.memo_no), id) : null;
+  const holdRes = o.sale_price === null && can(role, "orders.hold")
+    ? await supabase.from("order_holds").select("held_by,held_since,note").eq("order_id", id).maybeSingle()
+    : null;
   const facts: [string, string][] = [
     ["Style", s(o.style_no)], ["Customer", s(o.customer)], ["Type", s(o.jewelry_type)], ["Diamond shape", s(o.diamond_shape)],
     ["Order date", s(o.order_date)], ["Gross wt", s(o.gross_wt)], ["Net wt", s(o.net_wt)], ["Pg wt", s(o.pg_wt)],
@@ -90,6 +93,9 @@ async function SaleOnlyPage({ id, role }: { id: string; role: Role }) {
       </dl>
       <OrderSaleForm id={id} alreadySold={o.sale_price !== null} initialMemo={initialMemo && initialMemo.found ? initialMemo : null} buyers={(buyers ?? []).map((b) => b.name)}
         initial={{ sold_to: s(o.sold_to), memo_no: s(o.memo_no), sale_price: s(o.sale_price), date_sold: s(o.date_sold) }} />
+      {o.sale_price === null && can(role, "orders.hold") && (
+        <OrderHoldPanel orderId={id} hold={(holdRes?.data as Hold | null) ?? null} buyers={(buyers ?? []).map((b) => b.name)} />
+      )}
     </div>
   );
 }
