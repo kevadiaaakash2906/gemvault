@@ -1,66 +1,64 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, Download, Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { PAGE_SIZE, buildQuery, cleanSearch, fmtDate, inr, num, parsePage, pickSort, usd } from "@/lib/ledger";
-import { Tile, TileEmpty, type Fact } from "@/components/tiles";
+import { num, parsePage, pickSort, usd } from "@/lib/ledger";
 import { KpiStrip, type Kpi } from "@/components/kpi";
-import { Pagination } from "@/components/pagination";
 import { signedUsd } from "@/lib/reports";
 import { ColumnPicker } from "@/components/column-picker";
-import { OrderFilters } from "@/components/order-filters";
+import { OrdersBrowser, type CostRow, type OrderRow } from "@/components/orders-browser";
 import { COLUMNS } from "@/lib/columns";
 import { getHiddenColumns } from "@/lib/column-prefs";
 
 export const metadata: Metadata = { title: "Orders" };
 const SORTS = ["sr_no", "order_date", "style_no", "in_ct", "sale_price", "date_sold"] as const;
-type SP = { q?: string; status?: string; type?: string; sort?: string; dir?: string; page?: string };
 const STATUSES = ["Not Sold", "Unpaid", "Partial", "Paid"];
-// The table scrolls inside its own box, so the header row stays at the top and Sr. No. stays at the left.
-const HEAD = "sticky top-0 z-20 bg-parchment";
-const HEAD_FIRST = "sticky left-0 top-0 z-30 bg-parchment shadow-[1px_0_0_var(--color-gold-soft)]";
-const CELL_FIRST = "sticky left-0 z-10 bg-white shadow-[1px_0_0_var(--color-gold-soft)] group-hover:bg-ivory";
+type SP = { q?: string; ct?: string; status?: string; type?: string; sort?: string; dir?: string; page?: string };
+type Client = Awaited<ReturnType<typeof createClient>>;
+
+/** Reads a whole table, 1000 rows at a time (the database returns at most 1000 per request). */
+async function fetchAll(supabase: Client, table: string, order: string): Promise<{ rows: Record<string, unknown>[]; failed: boolean }> {
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data, error } = await supabase.from(table).select("*").order(order, { ascending: false }).range(from, from + 999);
+    if (error) return { rows, failed: true };
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < 1000) break;
+  }
+  return { rows, failed: false };
+}
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<SP> }) {
   const session = await requirePermission("orders.view");
   const sp = await searchParams;
   const owner = can(session.role, "costs.view");
-  const q = cleanSearch(sp.q);
   const sort = pickSort(sp.sort, SORTS, "sr_no");
   const dir = sp.dir === "asc" ? "asc" : sp.dir === "desc" ? "desc" : sort === "sr_no" ? "desc" : "asc";
-  const page = parsePage(sp.page);
-  const status = STATUSES.includes(sp.status ?? "") ? sp.status : undefined;
   const supabase = await createClient();
-  const kpiRequest = Promise.resolve(supabase.from("orders_kpi").select("*").maybeSingle());   // starts now, so it runs alongside the list
-  const stockRequest = Promise.resolve(supabase.rpc("live_stock_value"));   // stock at cost, re-priced at today's rates
-  const typesRequest = Promise.resolve(supabase.from("orders").select("jewelry_type").not("jewelry_type", "is", null).limit(2000));   // also alongside the list
 
-  const hiddenRequest = getHiddenColumns(supabase, "orders");   // the person's saved column choices, fetched alongside the list
-  let query = supabase.from("order_overview").select("*", { count: "exact" });
-  if (status) query = query.eq("payment_status", status);
-  if (sp.type) query = query.eq("jewelry_type", sp.type);
-  if (q) query = query.or(`style_no.ilike.%${q}%,customer.ilike.%${q}%,sold_to.ilike.%${q}%,memo_no.ilike.%${q}%`);
-  const from = (page - 1) * PAGE_SIZE;
-  const [{ data: rows, count, error }, { data: types }] = await Promise.all([
-    Promise.resolve(query.order(sort, { ascending: dir === "asc", nullsFirst: false }).order("id").range(from, from + PAGE_SIZE - 1)),
-    typesRequest,
+  // Everything is asked for at the same time, once. After this, searching never calls the server.
+  const [orders, costs, kRes, stockRes, hidden] = await Promise.all([
+    fetchAll(supabase, "order_overview", "sr_no"),
+    owner ? fetchAll(supabase, "order_costs", "order_id") : Promise.resolve({ rows: [] as Record<string, unknown>[], failed: false }),
+    Promise.resolve(supabase.from("orders_kpi").select("*").maybeSingle()),
+    Promise.resolve(supabase.rpc("live_stock_value")),   // stock at cost, re-priced at today's rates
+    getHiddenColumns(supabase, "orders"),
   ]);
-  const typeList = [...new Set((types ?? []).map((t) => t.jewelry_type as string))].sort();
+  const rows = orders.rows as unknown as OrderRow[];
 
-  const costs = new Map<string, Record<string, number>>();
-  const thumbUrls = new Map<string, string>();
-  const thumbPaths = [...new Set((rows ?? []).map((r) => r.style_thumb_path).filter((p): p is string => !!p))];
-  const [costRes, signed] = await Promise.all([
-    owner && rows?.length ? supabase.from("order_costs").select("*").in("order_id", rows.map((r) => r.id)) : Promise.resolve({ data: null }),
-    thumbPaths.length ? supabase.storage.from("style-photos").createSignedUrls(thumbPaths, 3600) : Promise.resolve({ data: null }),
-  ]);
-  (costRes.data ?? []).forEach((c: Record<string, number> & { order_id: string }) => costs.set(c.order_id, c));
-  (signed.data ?? []).forEach((x) => { if (x.path && x.signedUrl) thumbUrls.set(x.path, x.signedUrl); });
+  const paths = [...new Set(rows.map((r) => r.style_thumb_path).filter((p): p is string => !!p))];
+  const thumbs: Record<string, string> = {};
+  if (paths.length) {
+    const { data: signed } = await supabase.storage.from("style-photos").createSignedUrls(paths, 3600);
+    (signed ?? []).forEach((x) => { if (x.path && x.signedUrl) thumbs[x.path] = x.signedUrl; });
+  }
+  const costMap: Record<string, CostRow> = {};
+  costs.rows.forEach((c) => { costMap[String(c.order_id)] = c as unknown as CostRow; });
 
-  const [{ data: k }, { data: liveStock }] = await Promise.all([kpiRequest, stockRequest]);
-  const stockValue = num(liveStock ?? k?.stock_value);   // falls back to the saved cost if the database update has not run yet
+  const k = kRes.data;
+  const stockValue = num(stockRes.data ?? k?.stock_value);   // falls back to the saved cost if the database update has not run yet
   const cards: Kpi[] = !k ? [] : owner ? [
     { label: "Total revenue", value: usd.format(num(k.revenue)), sub: `from ${num(k.sold_items)} sold items` },
     { label: "Total cost", value: usd.format(num(k.cost)), sub: "manufacturing + labor" },
@@ -74,34 +72,11 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     { label: "Outstanding balance", value: usd.format(num(k.outstanding)), sub: "across all orders", tone: "warn" },
     { label: "Stock on hand", value: String(num(k.stock_items)), sub: "pieces not sold yet" },
   ];
-  const hidden = await hiddenRequest;
-  const total = count ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const base = { q: q || undefined, status, type: sp.type, sort: sp.sort, dir: sp.dir };
-  const th = (k: string, label: string, right?: boolean) => {
-    const nextDir = sort === k && dir === "asc" ? "desc" : "asc";
-    return (
-      <th key={k} data-col={k} scope="col" aria-sort={sort === k ? (dir === "asc" ? "ascending" : "descending") : "none"} className={`px-2 py-1.5 font-medium whitespace-nowrap ${k === "sr_no" ? HEAD_FIRST : HEAD} ${right ? "text-right" : "text-left"}`}>
-        <Link href={`/dashboard/orders${buildQuery({ ...base, sort: k, dir: nextDir })}`} className="inline-flex items-center gap-1 hover:text-gold-deep">
-          {label}
-          {sort === k && (dir === "asc" ? <ArrowUp className="size-3" aria-hidden /> : <ArrowDown className="size-3" aria-hidden />)}
-        </Link>
-      </th>
-    );
-  };
-  const plain = (key: string, label: string, right?: boolean) => <th key={key} data-col={key} scope="col" className={`px-2 py-1.5 font-medium whitespace-nowrap ${HEAD} ${right ? "text-right" : "text-left"}`}>{label}</th>;
-  const badge = (s: string) => {
-    const c = s === "Paid" ? "bg-emerald-100 text-emerald-900" : s === "Partial" ? "bg-amber-100 text-amber-900" : s === "Unpaid" ? "bg-red-100 text-red-900" : "bg-parchment text-ink-soft";
-    return <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${c}`}>{s}</span>;
-  };
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl text-forest">Orders</h1>
-          <p className="text-ink-soft">{total} {total === 1 ? "piece" : "pieces"}</p>
-        </div>
+        <h1 className="font-display text-3xl text-forest">Orders</h1>
         <div className="flex flex-wrap gap-2">
           <div className="hidden lg:block"><ColumnPicker table="orders" columns={COLUMNS.orders.filter((c) => owner || !c.ownerOnly)} initialHidden={hidden} /></div>
           <a href="/dashboard/export?sheet=orders" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-gold-soft bg-white px-4 text-sm font-semibold hover:bg-parchment"><Download className="size-4" aria-hidden /> Download Excel</a>
@@ -113,98 +88,13 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 
       {cards.length > 0 && <KpiStrip cards={cards} label="Orders summary" />}
 
-      <OrderFilters q={q} status={status} type={sp.type} statuses={STATUSES} types={typeList} sort={sp.sort} dir={sp.dir} />
+      {(orders.failed || costs.failed) && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load all orders. Please refresh the page.</p>}
 
-      {error && <p role="alert" className="rounded-md border border-danger/40 bg-red-50 p-3 text-danger">Could not load orders. Please refresh the page.</p>}
-
-      <div className="hidden max-h-[calc(100dvh-2rem)] overflow-auto rounded-md border border-gold-soft bg-white lg:block">
-        <table data-table="orders" className="w-full text-xs">
-          <caption className="sr-only">Orders</caption>
-          <thead>
-            <tr>
-              {plain("photo", "Photo")}{th("sr_no", "Sr. No.")}{plain("customer", "Customer")}{th("style_no", "Style No.")}{plain("jewelry_type", "Jewelry Type")}{plain("diamond_shape", "Diamond Shape")}{th("order_date", "Date")}
-              {plain("gross_wt", "Gross Wt", true)}{plain("dia_qty", "Dia Qty", true)}{th("in_ct", "IN CT", true)}{plain("colour_stone", "Colour Stone", true)}{plain("net_wt", "Net Wt", true)}{plain("multiplier", "Multiplier", true)}{plain("pg_wt", "Pg Wt", true)}
-              {owner && <>{plain("gold_amount", "Gold Amount", true)}{plain("diam_amount", "Diam Amount", true)}{plain("l_charges", "L Charges", true)}{plain("labor_amount", "Labor Amount", true)}{plain("sub_total", "Sub Total", true)}{plain("usd_cost", "$", true)}</>}
-              {plain("sold_to", "Sold To")}{th("sale_price", "Sale Price", true)}{th("date_sold", "Date Sold")}{plain("memo", "Memo")}{plain("memo_paid", "Memo Paid", true)}{plain("memo_balance", "Memo Balance", true)}{plain("payment_status", "Payment Status")}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gold-soft">
-            {(rows ?? []).map((r) => {
-              const c = costs.get(r.id);
-              return (
-                <tr key={r.id} className="group hover:bg-ivory">
-                  <td data-col="photo" className="px-2 py-1.5">
-                    {r.style_thumb_path && thumbUrls.get(r.style_thumb_path)
-                      // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={thumbUrls.get(r.style_thumb_path)} alt="" className="size-8 rounded object-cover" />
-                      : <div className="size-8 rounded bg-parchment" aria-hidden />}
-                  </td>
-                  <td data-col="sr_no" className={`px-2 py-1.5 ${CELL_FIRST}`}><Link href={`/dashboard/orders/${r.id}`} className="font-medium text-forest underline underline-offset-4">{r.sr_no}</Link></td>
-                  <td data-col="customer" className="px-2 py-1.5">{r.customer ?? "—"}</td>
-                  <td data-col="style_no" className="px-2 py-1.5 font-mono">{r.style_no}</td>
-                  <td data-col="jewelry_type" className="px-2 py-1.5">{r.jewelry_type ?? "—"}</td>
-                  <td data-col="diamond_shape" className="px-2 py-1.5">{r.diamond_shape ?? "—"}</td>
-                  <td data-col="order_date" className="px-2 py-1.5 whitespace-nowrap">{fmtDate(r.order_date)}</td>
-                  <td data-col="gross_wt" className="px-2 py-1.5 text-right">{r.gross_wt ?? "—"}</td>
-                  <td data-col="dia_qty" className="px-2 py-1.5 text-right">{r.dia_qty ?? "—"}</td>
-                  <td data-col="in_ct" className="px-2 py-1.5 text-right">{r.in_ct ?? "—"}</td>
-                  <td data-col="colour_stone" className="px-2 py-1.5 text-right">{r.colour_stone ?? "—"}</td>
-                  <td data-col="net_wt" className="px-2 py-1.5 text-right">{r.net_wt ?? "—"}</td>
-                  <td data-col="multiplier" className="px-2 py-1.5 text-right">{r.multiplier ?? "—"}</td>
-                  <td data-col="pg_wt" className="px-2 py-1.5 text-right">{r.pg_wt ?? "—"}</td>
-                  {owner && (<>
-                    <td data-col="gold_amount" className="px-2 py-1.5 text-right">{c ? inr.format(num(c.gold_amount)) : "—"}</td>
-                    <td data-col="diam_amount" className="px-2 py-1.5 text-right">{c ? inr.format(num(c.diam_amount)) : "—"}</td>
-                    <td data-col="l_charges" className="px-2 py-1.5 text-right">{c ? num(c.l_charges) : "—"}</td>
-                    <td data-col="labor_amount" className="px-2 py-1.5 text-right">{c ? inr.format(num(c.labor_amount)) : "—"}</td>
-                    <td data-col="sub_total" className="px-2 py-1.5 text-right">{c ? inr.format(num(c.sub_total)) : "—"}</td>
-                    <td data-col="usd_cost" className="px-2 py-1.5 text-right">{c ? usd.format(num(c.usd_cost)) : "—"}</td>
-                  </>)}
-                  <td data-col="sold_to" className="px-2 py-1.5">{r.sold_to ?? "—"}</td>
-                  <td data-col="sale_price" className="px-2 py-1.5 text-right">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "—"}</td>
-                  <td data-col="date_sold" className="px-2 py-1.5 whitespace-nowrap">{fmtDate(r.date_sold)}</td>
-                  <td data-col="memo" className="px-2 py-1.5">{r.memo_id ? <Link href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"}</td>
-                  <td data-col="memo_paid" className="px-2 py-1.5 text-right">{r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"}</td>
-                  <td data-col="memo_balance" className="px-2 py-1.5 text-right">{r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"}</td>
-                  <td data-col="payment_status" className="px-2 py-1.5">{badge(r.payment_status)}</td>
-                </tr>
-              );
-            })}
-            {(rows ?? []).length === 0 && !error && (
-              <tr><td colSpan={owner ? 27 : 21} className="px-3 py-10 text-center text-ink-soft">No orders match. {total === 0 && !q && !status && !sp.type ? "Add your first order to begin." : "Try clearing the filters."}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <ul className="space-y-3 lg:hidden" aria-label="Orders">
-        {(rows ?? []).map((r) => {
-          const c = costs.get(r.id);
-          const facts: Fact[] = [
-            ["Customer", r.customer ?? "—"], ["Diamond Shape", r.diamond_shape ?? "—"], ["Gross Wt", r.gross_wt ?? "—"], ["Net Wt", r.net_wt ?? "—"],
-            ["Multiplier", r.multiplier ?? "—"], ["Pg Wt", r.pg_wt ?? "—"], ["Dia Qty", r.dia_qty ?? "—"], ["IN CT", r.in_ct ?? "—"], ["Colour Stone", r.colour_stone ?? "—"],
-          ];
-          if (owner) facts.push(
-            ["Gold Amount", c ? inr.format(num(c.gold_amount)) : "—"], ["Diam Amount", c ? inr.format(num(c.diam_amount)) : "—"],
-            ["L Charges", c ? num(c.l_charges) : "—"], ["Labor Amount", c ? inr.format(num(c.labor_amount)) : "—"],
-            ["Sub Total", c ? inr.format(num(c.sub_total)) : "—"], ["$", c ? usd.format(num(c.usd_cost)) : "—"],
-          );
-          facts.push(
-            ["Sold To", r.sold_to ?? "—"], ["Date Sold", fmtDate(r.date_sold)],
-            ["Memo", r.memo_id ? <Link key="m" href={`/dashboard/memos/${r.memo_id}`} className="underline underline-offset-4">{r.memo_no}</Link> : "—"],
-            ["Memo Paid", r.memo_paid !== null ? usd.format(num(r.memo_paid)) : "—"], ["Memo Balance", r.memo_balance !== null ? usd.format(num(r.memo_balance)) : "—"],
-          );
-          return (
-            <Tile key={r.id} image={r.style_thumb_path ? thumbUrls.get(r.style_thumb_path) ?? null : null} title={`#${r.sr_no} · ${r.style_no}`}
-              subtitle={[r.jewelry_type, fmtDate(r.order_date)].filter((x) => x && x !== "—").join(" · ")}
-              right={<><p className="font-medium">{r.sale_price !== null ? usd.format(num(r.sale_price)) : "Not sold"}</p>{badge(r.payment_status)}</>}
-              facts={facts} href={`/dashboard/orders/${r.id}`} hrefLabel="Open / edit" />
-          );
-        })}
-        {(rows ?? []).length === 0 && !error && <TileEmpty>No orders match.</TileEmpty>}
-      </ul>
-
-      <Pagination basePath="/dashboard/orders" params={base} page={page} pages={pages} />
+      <OrdersBrowser rows={rows} costs={costMap} thumbs={thumbs} owner={owner}
+        initial={{
+          q: (sp.q ?? "").slice(0, 80), ct: (sp.ct ?? "").slice(0, 20), status: STATUSES.includes(sp.status ?? "") ? (sp.status as string) : "",
+          type: sp.type ?? "", sort, dir, page: parsePage(sp.page),
+        }} />
     </div>
   );
 }
